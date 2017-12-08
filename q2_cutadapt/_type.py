@@ -6,11 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from ._format import CutadaptStatsFmt, CutadaptStatsDirFmt
-from ._type import CutadaptStats
-from ._version import get_versions
+from qiime2.plugin import SemanticType
 
-__version__ = get_versions()['version']
-del get_versions
-
-__all__ = ['CutadaptStats', 'CutadaptStatsFmt', 'CutadaptStatsDirFmt']
+CutadaptStats = SemanticType('CutadaptStats')
