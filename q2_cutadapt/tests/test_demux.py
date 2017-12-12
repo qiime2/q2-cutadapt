@@ -17,7 +17,8 @@ import pandas as pd
 
 from q2_cutadapt._demux import (_build_demux_command, _rename_files,
                                 _write_metadata_yaml_in_results,
-                                _write_manifest_in_results)
+                                _write_manifest_in_results,
+                                _write_empty_fastq_to_mux_barcode_in_seq_fmt)
 from q2_cutadapt import CutadaptStatsDirFmt
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequenceDirFmt)
@@ -39,17 +40,18 @@ class TestDemuxSingle(TestPluginBase):
         self.muxed_sequences = Artifact.import_data(
             'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
 
-        self.metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC'],
-                                         index=['sample_a', 'sample_b'],
-                                         name='Barcode'))
+    def test_typical(self):
+        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC'],
+                                    index=['sample_a', 'sample_b'],
+                                    name='Barcode'))
 
-    def test_positive(self):
         with redirected_stdio(stderr=os.devnull):
-            obs_demuxed, obs_untrimmed, obs_stats = self.demux_single_fn(
-                self.muxed_sequences, self.metadata)
+            obs_demuxed_art, obs_untrimmed_art, obs_stats_viz = \
+                self.demux_single_fn(self.muxed_sequences, metadata)
 
-        obs_demuxed = obs_demuxed.view(SingleLanePerSampleSingleEndFastqDirFmt)
-        exp_samples_and_barcodes = self.metadata.to_series().iteritems()
+        obs_demuxed = obs_demuxed_art.view(
+            SingleLanePerSampleSingleEndFastqDirFmt)
+        exp_samples_and_barcodes = metadata.to_series().iteritems()
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
         zipped = zip(exp_samples_and_barcodes, obs_demuxed_seqs)
         for (sample_id, barcode), (filename, _) in zipped:
@@ -57,7 +59,7 @@ class TestDemuxSingle(TestPluginBase):
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
 
-        obs_untrimmed = obs_untrimmed.view(
+        obs_untrimmed = obs_untrimmed_art.view(
             MultiplexedSingleEndBarcodeInSequenceDirFmt)
         obs_untrimmed = obs_untrimmed.file.view(FastqGzFormat)
         obs_untrimmed = gzip.decompress(obs_untrimmed.path.read_bytes())
@@ -65,11 +67,54 @@ class TestDemuxSingle(TestPluginBase):
                          obs_untrimmed)
 
         with tempfile.TemporaryDirectory() as viz_dir:
-            obs_stats.export_data(viz_dir)
+            obs_stats_viz.export_data(viz_dir)
             index_fp = os.path.join(viz_dir, 'index.html')
             index = open(index_fp, 'r').read()
             for id_ in ['id1', 'id2', 'id3', 'id4', 'id5', 'id6']:
                 self.assertTrue(id_ in index)
+
+    def test_all_matched(self):
+        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC', 'GGGG'],
+                                    index=['sample_a', 'sample_b', 'sample_c'],
+                                    name='Barcode'))
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art, obs_stats_viz = \
+                self.demux_single_fn(self.muxed_sequences, metadata)
+
+        obs_demuxed = obs_demuxed_art.view(
+            SingleLanePerSampleSingleEndFastqDirFmt)
+        exp_samples_and_barcodes = metadata.to_series().iteritems()
+        obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
+        zipped = zip(exp_samples_and_barcodes, obs_demuxed_seqs)
+        for (sample_id, barcode), (filename, _) in zipped:
+            filename = str(filename)
+            self.assertTrue(sample_id in filename)
+            self.assertTrue(barcode in filename)
+
+        obs_untrimmed = obs_untrimmed_art.view(
+            MultiplexedSingleEndBarcodeInSequenceDirFmt)
+        # print(list(obs_untrimmed.path.iterdir()))
+        # self.assertTrue(False)
+        obs_untrimmed = obs_untrimmed.file.view(FastqGzFormat)
+        obs_untrimmed = gzip.decompress(obs_untrimmed.path.read_bytes())
+        # obs_untrimmed should be empty, since everything matched
+        self.assertEqual(b'', obs_untrimmed)
+
+        with tempfile.TemporaryDirectory() as viz_dir:
+            obs_stats_viz.export_data(viz_dir)
+            index_fp = os.path.join(viz_dir, 'index.html')
+            index = open(index_fp, 'r').read()
+            for id_ in ['id1', 'id2', 'id3', 'id4', 'id5', 'id6']:
+                self.assertTrue(id_ in index)
+
+    def test_none_matched(self):
+        metadata = MetadataCategory(pd.Series(['TTTT'], index=['sample_d'],
+                                    name='Barcode'))
+
+        with redirected_stdio(stderr=os.devnull):
+            with self.assertRaisesRegex(ValueError, 'demultiplexed'):
+                self.demux_single_fn(self.muxed_sequences, metadata)
 
 
 class TestDemuxUtils(TestPluginBase):
@@ -154,6 +199,12 @@ class TestDemuxUtils(TestPluginBase):
                          'sample_a,sample_a_A_L001_R1_001.fastq.gz,forward\n'
                          'sample_b,sample_b_G_L001_R1_001.fastq.gz,forward\n',
                          manifest_content)
+
+    def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
+        _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)
+        forward = self.untrimmed_dir_fmt.file.view(FastqGzFormat)
+        self.assertTrue(forward.path.exists())
+        self.assertTrue(forward.path.is_file())
 
 
 if __name__ == '__main__':

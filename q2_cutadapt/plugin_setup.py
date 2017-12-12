@@ -26,9 +26,9 @@ plugin = Plugin(
     website='https://github.com/qiime2/q2-cutadapt',
     package='q2_cutadapt',
     description='This QIIME 2 plugin uses cutadapt to work with '
-                'non-biological signal in sequences (e.g. barcodes, primers).',
-    short_description='Plugin for handling non-biological signal in sequence '
-                      'data.',
+                'adapters (e.g. barcodes, primers) in sequence data.',
+    short_description='Plugin for removing adapter sequences, primers, and '
+                      'other unwanted sequence from sequence data.',
 )
 
 plugin.register_formats(CutadaptStatsFmt, CutadaptStatsDirFmt)

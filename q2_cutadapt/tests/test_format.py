@@ -29,6 +29,12 @@ class TestFormats(TestPluginBase):
         with self.assertRaisesRegex(ValidationError, 'CutadaptStatsFmt'):
             format_.validate()
 
+    def test_cutadapts_stats_format_validate_long(self):
+        filepath = self.get_data_path('stats-long.tsv')
+        format_ = CutadaptStatsFmt(filepath, mode='r')
+
+        format_.validate()
+
 
 if __name__ == '__main__':
     unittest.main()

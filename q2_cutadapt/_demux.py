@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import gzip
 import os
 import subprocess
 
@@ -41,6 +42,8 @@ def _build_demux_command(seqs_dir_fmt, barcode_series, per_sample_dir_fmt,
     for (sample_id, barcode) in barcode_series.iteritems():
         cmd = cmd + ['-g', '%s=%s' % (sample_id, barcode)]
     cmd = cmd + [
+        # {name} is a cutadapt convention for interpolating the sample id
+        # into the filename.
         '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
         '--info-file', '%s/stats.tsv' % str(stats_dir_fmt),
         '--untrimmed-output', '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
@@ -69,13 +72,23 @@ def _write_metadata_yaml_in_results(per_sample_dir_fmt):
 def _write_manifest_in_results(per_sample_dir_fmt):
     manifest = FastqManifestFormat()
     with manifest.open() as fh:
-        fh.write('sample-id,filename,direction\n')
         filenames = per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
+        filenames = list(filenames)
+        if len(filenames) == 0:
+            raise ValueError('No samples were demultiplexed.')
+        fh.write('sample-id,filename,direction\n')
         for filename, _ in filenames:
             filename = str(filename)
             sample_id, _, _, _, _ = filename.rsplit('_', maxsplit=4)
             fh.write('%s,%s,forward\n' % (sample_id, filename))
     per_sample_dir_fmt.manifest.write_data(manifest, FastqManifestFormat)
+
+
+def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
+    fastq = FastqGzFormat()
+    with gzip.open(str(fastq), 'w') as fh:
+        fh.write(b'')
+    seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
 def demux_single(ctx, seqs, barcodes):
@@ -84,6 +97,8 @@ def demux_single(ctx, seqs, barcodes):
     per_sample_sequences = SingleLanePerSampleSingleEndFastqDirFmt()
     untrimmed = MultiplexedSingleEndBarcodeInSequenceDirFmt()
     stats = CutadaptStatsDirFmt()
+
+    _write_empty_fastq_to_mux_barcode_in_seq_fmt(untrimmed)
 
     cmd = _build_demux_command(seqs, barcode_series, per_sample_sequences,
                                stats, untrimmed)
