@@ -11,7 +11,7 @@ import os
 import subprocess
 
 import yaml
-from qiime2 import Artifact, Metadata
+import qiime2
 from q2_types.per_sample_sequences import (
     FastqManifestFormat,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -21,8 +21,6 @@ from q2_types.per_sample_sequences import (
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequenceDirFmt,
 )
-
-from ._format import CutadaptStatsDirFmt
 
 
 def run_command(cmd, verbose=True):
@@ -37,7 +35,7 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_series, per_sample_dir_fmt,
-                         stats_dir_fmt, untrimmed_dir_fmt):
+                         untrimmed_dir_fmt):
     cmd = ['cutadapt']
     for (sample_id, barcode) in barcode_series.iteritems():
         cmd = cmd + ['-g', '%s=%s' % (sample_id, barcode)]
@@ -45,7 +43,6 @@ def _build_demux_command(seqs_dir_fmt, barcode_series, per_sample_dir_fmt,
         # {name} is a cutadapt convention for interpolating the sample id
         # into the filename.
         '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
-        '--info-file', '%s/stats.tsv' % str(stats_dir_fmt),
         '--untrimmed-output', '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
         str(seqs_dir_fmt.file.view(FastqGzFormat)),
     ]
@@ -91,32 +88,23 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
     seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def demux_single(ctx, seqs, barcodes):
-    barcode_series = barcodes.to_series()
-    seqs = seqs.view(MultiplexedSingleEndBarcodeInSequenceDirFmt)
+def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
+                 barcodes: qiime2.MetadataCategory) -> \
+                    (SingleLanePerSampleSingleEndFastqDirFmt,
+                     MultiplexedSingleEndBarcodeInSequenceDirFmt):
+
+    barcodes = barcodes.to_series()
     per_sample_sequences = SingleLanePerSampleSingleEndFastqDirFmt()
     untrimmed = MultiplexedSingleEndBarcodeInSequenceDirFmt()
-    stats = CutadaptStatsDirFmt()
 
     _write_empty_fastq_to_mux_barcode_in_seq_fmt(untrimmed)
 
-    cmd = _build_demux_command(seqs, barcode_series, per_sample_sequences,
-                               stats, untrimmed)
+    cmd = _build_demux_command(seqs, barcodes, per_sample_sequences,
+                               untrimmed)
     run_command(cmd)
 
-    _rename_files(per_sample_sequences, barcode_series)
+    _rename_files(per_sample_sequences, barcodes)
     _write_manifest_in_results(per_sample_sequences)
     _write_metadata_yaml_in_results(per_sample_sequences)
 
-    per_sample_sequences = Artifact.import_data(
-        'SampleData[SequencesWithQuality]', per_sample_sequences)
-    untrimmed = Artifact.import_data(
-        'MultiplexedSingleEndBarcodeInSequence', untrimmed)
-    stats = Artifact.import_data(
-        'CutadaptStats', stats)
-
-    metadata_tabulate = ctx.get_action('metadata', 'tabulate')
-    stats = stats.view(Metadata)
-    stats_viz = metadata_tabulate(input=stats)
-
-    return per_sample_sequences, untrimmed, stats_viz.visualization
+    return per_sample_sequences, untrimmed

@@ -6,9 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import importlib
-
-from qiime2.plugin import Plugin, MetadataCategory, Visualization
+from qiime2.plugin import Plugin, MetadataCategory
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence)
 from q2_types.sample_data import SampleData
@@ -16,8 +14,6 @@ from q2_types.per_sample_sequences import SequencesWithQuality
 
 import q2_cutadapt
 import q2_cutadapt._demux
-from ._format import CutadaptStatsFmt, CutadaptStatsDirFmt
-from ._type import CutadaptStats
 
 
 plugin = Plugin(
@@ -31,14 +27,7 @@ plugin = Plugin(
                       'other unwanted sequence from sequence data.',
 )
 
-plugin.register_formats(CutadaptStatsFmt, CutadaptStatsDirFmt)
-plugin.register_semantic_types(CutadaptStats)
-plugin.register_semantic_type_to_format(
-    CutadaptStats,
-    artifact_format=CutadaptStatsDirFmt)
-importlib.import_module('q2_cutadapt._transformer')
-
-plugin.pipelines.register_function(
+plugin.methods.register_function(
     function=q2_cutadapt._demux.demux_single,
     inputs={
         'seqs': MultiplexedSingleEndBarcodeInSequence,
@@ -49,7 +38,6 @@ plugin.pipelines.register_function(
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
         ('untrimmed_sequences', MultiplexedSingleEndBarcodeInSequence),
-        ('demux_stats', Visualization)
     ],
     input_descriptions={
         'seqs': 'The single-end sequences to be demultiplexed.',
@@ -62,7 +50,6 @@ plugin.pipelines.register_function(
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
         'untrimmed_sequences': 'The sequences that were unmatched to '
                                'barcodes.',
-        'demux_stats': 'The cutdapat-generated report for read-matching.',
     },
     name='Demultiplex single-end sequence data with barcodes in-sequence.',
     description='Demultiplex sequence data (i.e., map barcode reads to '
