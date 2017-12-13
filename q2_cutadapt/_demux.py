@@ -9,6 +9,7 @@
 import gzip
 import os
 import subprocess
+import tempfile
 
 import yaml
 import qiime2
@@ -34,18 +35,17 @@ def run_command(cmd, verbose=True):
     subprocess.run(cmd, check=True)
 
 
-def _build_demux_command(seqs_dir_fmt, barcode_series, per_sample_dir_fmt,
+def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
                          untrimmed_dir_fmt):
-    cmd = ['cutadapt']
-    for (sample_id, barcode) in barcode_series.iteritems():
-        cmd = cmd + ['-g', '%s=%s' % (sample_id, barcode)]
-    cmd = cmd + [
-        # {name} is a cutadapt convention for interpolating the sample id
-        # into the filename.
-        '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
-        '--untrimmed-output', '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
-        str(seqs_dir_fmt.file.view(FastqGzFormat)),
-    ]
+    cmd = ['cutadapt',
+           '-g', 'file:%s' % barcode_fasta.name,
+           # {name} is a cutadapt convention for interpolating the sample id
+           # into the filename.
+           '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
+           '--untrimmed-output',
+           '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
+           str(seqs_dir_fmt.file.view(FastqGzFormat)),
+           ]
     return cmd
 
 
@@ -58,6 +58,12 @@ def _rename_files(per_sample_dir_fmt, barcode_series):
         src = os.path.join(str(per_sample_dir_fmt), '%s.fastq.gz' % sample_id)
         if os.path.isfile(src):
             os.rename(src, str(out_fp))
+
+
+def _write_barcode_fasta(barcode_series, barcode_fasta):
+    with open(barcode_fasta.name, 'w') as fh:
+        for (sample_id, barcode) in barcode_series.iteritems():
+            fh.write('>%s\n%s\n' % (sample_id, barcode))
 
 
 def _write_metadata_yaml_in_results(per_sample_dir_fmt):
@@ -99,9 +105,11 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
     _write_empty_fastq_to_mux_barcode_in_seq_fmt(untrimmed)
 
-    cmd = _build_demux_command(seqs, barcodes, per_sample_sequences,
-                               untrimmed)
-    run_command(cmd)
+    with tempfile.NamedTemporaryFile() as barcode_fasta:
+        _write_barcode_fasta(barcodes, barcode_fasta)
+        cmd = _build_demux_command(seqs, barcode_fasta, per_sample_sequences,
+                                   untrimmed)
+        run_command(cmd)
 
     _rename_files(per_sample_sequences, barcodes)
     _write_manifest_in_results(per_sample_sequences)

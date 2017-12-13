@@ -10,11 +10,13 @@ import gzip
 import os
 import pathlib
 import shutil
+import tempfile
 import unittest
 
 import pandas as pd
 
 from q2_cutadapt._demux import (_build_demux_command, _rename_files,
+                                _write_barcode_fasta,
                                 _write_metadata_yaml_in_results,
                                 _write_manifest_in_results,
                                 _write_empty_fastq_to_mux_barcode_in_seq_fmt)
@@ -116,18 +118,23 @@ class TestDemuxUtils(TestPluginBase):
         self.untrimmed_dir_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt()
 
     def test_build_demux_command(self):
-        obs = _build_demux_command(self.seqs_dir_fmt, self.barcode_series,
-                                   self.per_sample_dir_fmt,
-                                   self.untrimmed_dir_fmt)
-        exp_map = ['cutadapt', '-g', 'sample_a=A', '-g', 'sample_b=G']
-        obs_map = obs[:5]
-
-        self.assertEqual(exp_map, obs_map)
-
-        self.assertTrue(str(self.per_sample_dir_fmt) in obs[6])
-        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[8])
+        with tempfile.NamedTemporaryFile() as barcode_fasta:
+            obs = _build_demux_command(self.seqs_dir_fmt, barcode_fasta,
+                                       self.per_sample_dir_fmt,
+                                       self.untrimmed_dir_fmt)
+            self.assertTrue(barcode_fasta.name in obs[2])
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[4])
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[6])
         self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
-                         obs[9])
+                         obs[7])
+
+    def test_write_barcode_fasta(self):
+        with tempfile.NamedTemporaryFile() as fh:
+            _write_barcode_fasta(self.barcode_series, fh)
+            fasta = open(fh.name).read()
+            for (sample_id, barcode) in self.barcode_series.iteritems():
+                self.assertTrue(sample_id in fasta)
+                self.assertTrue(barcode in fasta)
 
     def test_rename_files(self):
         for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
