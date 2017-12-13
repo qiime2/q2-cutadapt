@@ -17,8 +17,6 @@ import pandas as pd
 
 from q2_cutadapt._demux import (_build_demux_command, _rename_files,
                                 _write_barcode_fasta,
-                                _write_metadata_yaml_in_results,
-                                _write_manifest_in_results,
                                 _write_empty_fastq_to_mux_barcode_in_seq_fmt)
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequenceDirFmt)
@@ -163,29 +161,6 @@ class TestDemuxUtils(TestPluginBase):
         for fn, (sample_id, barcode) in zip(seqs, barcode_series.iteritems()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
-
-    def test_write_metadata_yaml_in_results(self):
-        _write_metadata_yaml_in_results(self.per_sample_dir_fmt)
-        yml = os.path.join(str(self.per_sample_dir_fmt), 'metadata.yml')
-        self.assertTrue(os.path.isfile(yml))
-        yml_content = open(yml, 'r').read()
-        self.assertEqual('{phred-offset: 33}\n', yml_content)
-
-    def test_write_manifest_in_results(self):
-        for fn in ['sample_a_A_L001_R1_001.fastq.gz',
-                   'sample_b_G_L001_R1_001.fastq.gz']:
-            shutil.copy(self.fastq_fp,
-                        str(self.per_sample_dir_fmt.path / pathlib.Path(fn)))
-
-        _write_manifest_in_results(self.per_sample_dir_fmt)
-
-        manifest = os.path.join(str(self.per_sample_dir_fmt), 'MANIFEST')
-        self.assertTrue(os.path.isfile(manifest))
-        manifest_content = open(manifest, 'r').read()
-        self.assertEqual('sample-id,filename,direction\n'
-                         'sample_a,sample_a_A_L001_R1_001.fastq.gz,forward\n'
-                         'sample_b,sample_b_G_L001_R1_001.fastq.gz,forward\n',
-                         manifest_content)
 
     def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)

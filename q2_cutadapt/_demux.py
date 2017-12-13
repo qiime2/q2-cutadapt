@@ -11,12 +11,9 @@ import os
 import subprocess
 import tempfile
 
-import yaml
 import qiime2
 from q2_types.per_sample_sequences import (
-    FastqManifestFormat,
-    SingleLanePerSampleSingleEndFastqDirFmt,
-    YamlFormat,
+    CasavaOneEightSingleLanePerSampleDirFmt,
     FastqGzFormat,
 )
 from q2_types.multiplexed_sequences import (
@@ -66,27 +63,6 @@ def _write_barcode_fasta(barcode_series, barcode_fasta):
             fh.write('>%s\n%s\n' % (sample_id, barcode))
 
 
-def _write_metadata_yaml_in_results(per_sample_dir_fmt):
-    metadata = YamlFormat()
-    metadata.path.write_text(yaml.dump({'phred-offset': 33}))
-    per_sample_dir_fmt.metadata.write_data(metadata, YamlFormat)
-
-
-def _write_manifest_in_results(per_sample_dir_fmt):
-    manifest = FastqManifestFormat()
-    with manifest.open() as fh:
-        filenames = per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
-        filenames = list(filenames)
-        if len(filenames) == 0:
-            raise ValueError('No samples were demultiplexed.')
-        fh.write('sample-id,filename,direction\n')
-        for filename, _ in filenames:
-            filename = str(filename)
-            sample_id, _, _, _, _ = filename.rsplit('_', maxsplit=4)
-            fh.write('%s,%s,forward\n' % (sample_id, filename))
-    per_sample_dir_fmt.manifest.write_data(manifest, FastqManifestFormat)
-
-
 def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
     fastq = FastqGzFormat()
     with gzip.open(str(fastq), 'w') as fh:
@@ -96,11 +72,11 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.MetadataCategory) -> \
-                    (SingleLanePerSampleSingleEndFastqDirFmt,
+                    (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
 
     barcodes = barcodes.to_series()
-    per_sample_sequences = SingleLanePerSampleSingleEndFastqDirFmt()
+    per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     untrimmed = MultiplexedSingleEndBarcodeInSequenceDirFmt()
 
     _write_empty_fastq_to_mux_barcode_in_seq_fmt(untrimmed)
@@ -112,7 +88,8 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
         run_command(cmd)
 
     _rename_files(per_sample_sequences, barcodes)
-    _write_manifest_in_results(per_sample_sequences)
-    _write_metadata_yaml_in_results(per_sample_sequences)
+    muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
+    if muxed == 0:
+        raise ValueError('No samples were demultiplexed.')
 
     return per_sample_sequences, untrimmed
