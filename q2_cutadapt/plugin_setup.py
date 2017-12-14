@@ -25,6 +25,9 @@ plugin = Plugin(
                 'adapters (e.g. barcodes, primers) in sequence data.',
     short_description='Plugin for removing adapter sequences, primers, and '
                       'other unwanted sequence from sequence data.',
+    citation_text='Martin, M. (2011). Cutadapt removes adapter sequences from '
+                  'high-throughput sequencing reads. EMBnet.Journal, 17(1), '
+                  'pp. 10-12.\ndoi:http://dx.doi.org/10.14806/ej.17.1.200',
 )
 
 plugin.methods.register_function(
