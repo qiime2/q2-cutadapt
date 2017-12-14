@@ -19,8 +19,6 @@ setup(
     packages=find_packages(),
     author='Matthew Ryan Dillon',
     author_email="matthewrdillon@gmail.com",
-    description='Find and remove adapters, primers, and other unwanted '
-                'sequences from sequence data.',
     url='https://github.com/qiime2/q2-cutadapt',
     entry_points={
         'qiime2.plugins':
