@@ -33,9 +33,10 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
-                         untrimmed_dir_fmt):
+                         untrimmed_dir_fmt, error_tolerance):
     cmd = ['cutadapt',
            '-g', 'file:%s' % barcode_fasta.name,
+           '-e', str(error_tolerance),
            # {name} is a cutadapt convention for interpolating the sample id
            # into the filename.
            '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
@@ -71,7 +72,8 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
-                 barcodes: qiime2.MetadataCategory) -> \
+                 barcodes: qiime2.MetadataCategory,
+                 error_tolerance: float=0.0) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
 
@@ -84,7 +86,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
     with tempfile.NamedTemporaryFile() as barcode_fasta:
         _write_barcode_fasta(barcodes, barcode_fasta)
         cmd = _build_demux_command(seqs, barcode_fasta, per_sample_sequences,
-                                   untrimmed)
+                                   untrimmed, error_tolerance)
         run_command(cmd)
 
     _rename_files(per_sample_sequences, barcodes)

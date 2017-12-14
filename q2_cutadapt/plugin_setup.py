@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from qiime2.plugin import Plugin, MetadataCategory
+from qiime2.plugin import Plugin, MetadataCategory, Float, Range
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence)
 from q2_types.sample_data import SampleData
@@ -34,6 +34,8 @@ plugin.methods.register_function(
     },
     parameters={
         'barcodes': MetadataCategory,
+        'error_tolerance': Float % Range(0, 1, inclusive_start=True,
+                                         inclusive_end=True),
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -45,6 +47,8 @@ plugin.methods.register_function(
     parameter_descriptions={
         'barcodes': 'The sample metadata category listing the per-sample '
                     'barcodes.',
+        'error_tolerance': 'The level of error tolerance, specified as the '
+                           'maximum allowable error rate.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
