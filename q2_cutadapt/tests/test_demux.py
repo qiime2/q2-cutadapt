@@ -121,6 +121,42 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
+    def test_extra_barcode_in_metadata(self):
+        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'],
+                                    index=['sample_a', 'sample_b', 'sample_c',
+                                           'sample_d'],
+                                    name='Barcode'))
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata)
+
+        # TTTT/sample_d shouldn't be in the demuxed results, because there
+        # were no reads with that barcode present
+        exp_samples_and_barcodes = pd.Series(['AAAA', 'CCCC', 'GGGG'],
+                                             index=['sample_a', 'sample_b',
+                                                    'sample_c'])
+        self.assert_demux_results(exp_samples_and_barcodes, obs_demuxed_art)
+        # obs_untrimmed should be empty, since everything matched
+        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+
+    def test_variable_length_barcodes(self):
+        metadata = MetadataCategory(pd.Series(['AAAAA', 'CCCCCC', 'GGGG'],
+                                    index=['sample_a', 'sample_b', 'sample_c'],
+                                    name='Barcode'))
+        muxed_sequences_fp = self.get_data_path('variable_length.fastq.gz')
+        muxed_sequences = Artifact.import_data(
+            'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(muxed_sequences, metadata)
+
+        # This test should yield the same results as test_typical, above, just
+        # with variable length barcodes
+        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+
 
 class TestDemuxUtils(TestPluginBase):
     package = 'q2_cutadapt.tests'
