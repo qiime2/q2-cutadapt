@@ -174,7 +174,19 @@ class TestDemuxUtils(TestPluginBase):
         self.per_sample_dir_fmt = SingleLanePerSampleSingleEndFastqDirFmt()
         self.untrimmed_dir_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt()
 
-    def test_build_demux_command(self):
+    def test_build_demux_command_with_defaults(self):
+        with tempfile.NamedTemporaryFile() as barcode_fasta:
+            obs = _build_demux_command(self.seqs_dir_fmt, barcode_fasta,
+                                       self.per_sample_dir_fmt,
+                                       self.untrimmed_dir_fmt,
+                                       None)
+            self.assertTrue(barcode_fasta.name in obs[2])
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[4])
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[6])
+        self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
+                         obs[7])
+
+    def test_build_demux_command_override_default_error_tolerance(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta:
             obs = _build_demux_command(self.seqs_dir_fmt, barcode_fasta,
                                        self.per_sample_dir_fmt,
