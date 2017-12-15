@@ -51,7 +51,9 @@ plugin.methods.register_function(
         'barcodes': 'The sample metadata category listing the per-sample '
                     'barcodes.',
         'error_tolerance': 'The level of error tolerance, specified as the '
-                           'maximum allowable error rate.',
+                           'maximum allowable error rate. The default value '
+                           'specified by cutadapt is 0.1 (=10%), which is '
+                           'greater than `demux emp-*`, which is 0.0 (=0%).',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',

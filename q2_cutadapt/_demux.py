@@ -73,7 +73,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.MetadataCategory,
-                 error_tolerance: float=0.0) -> \
+                 error_tolerance: float=0.1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
 
