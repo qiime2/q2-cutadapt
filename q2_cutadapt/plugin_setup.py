@@ -6,7 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from qiime2.plugin import Plugin, MetadataCategory, Float, Range
+from qiime2.plugin import (Plugin, MetadataCategory, Float, Range, Int, List,
+                           Str, Bool)
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
     MultiplexedPairedEndBarcodeInSequence)
@@ -16,6 +17,7 @@ from q2_types.per_sample_sequences import (SequencesWithQuality,
 
 import q2_cutadapt
 import q2_cutadapt._demux
+import q2_cutadapt._trim
 
 
 plugin = Plugin(
@@ -30,6 +32,66 @@ plugin = Plugin(
     citation_text='Martin, M. (2011). Cutadapt removes adapter sequences from '
                   'high-throughput sequencing reads. EMBnet.Journal, 17(1), '
                   'pp. 10-12.\ndoi:http://dx.doi.org/10.14806/ej.17.1.200',
+)
+
+plugin.methods.register_function(
+    function=q2_cutadapt._trim.trim_single,
+    inputs={
+        'demultiplexed_sequences': SampleData[SequencesWithQuality],
+    },
+    parameters={
+        'cores': Int % Range(1, None),
+        'adapter': List[Str],
+        'front': List[Str],
+        'anywhere': List[Str],
+        'error_rate': Float % Range(0, 1, inclusive_start=True,
+                                    inclusive_end=True),
+        'no_indels': Bool,
+        'times': Int % Range(1, None),
+        'overlap': Int % Range(1, None),
+        'match_read_wildcards': Bool,
+        'no_match_adapter_wildcards': Bool,
+    },
+    outputs=[
+        ('trimmed_sequences', SampleData[SequencesWithQuality]),
+    ],
+    input_descriptions={
+        'demultiplexed_sequences': 'The single-end sequences to be trimmed.',
+    },
+    parameter_descriptions={
+        'cores': 'Number of CPU cores to use.',
+        'adapter': 'Sequence of an adapter ligated to the 3\' end. The '
+                   'adapter and subsequent bases are trimmed. If a `$` '
+                   'is appended, the adapter is only found if it is a suffix '
+                   'of the read.',
+        'front': 'Sequence of an adapter ligated to the 5\' end. The adapter '
+                 'and any preceding bases are trimmed. Partial matches at the '
+                 '5\' end are allowed. If a `^` character is prepended, the '
+                 'adapter is only found if it is as prefix of the read.',
+        'anywhere': 'Sequence of an adapter that may be ligated to the 5\' or '
+                    '3\' end. Both types of matches as described under '
+                    '`adapter` and `front` are allowed. If the first base of '
+                    'the read is part of the match, the behavior is as with '
+                    '`front`, otherwise as with `adapter`. This option is '
+                    'mostly for rescuing failed library preparations - do '
+                    'not use is you know which end your adapter was ligated '
+                    'to.',
+        'error_rate': 'Maximum allowed error rate.',
+        'no_indels': 'Allow only mismatches in alignments',
+        'times': 'Remove up to `times` adapters from each read.',
+        'overlap': 'Require `overlap` overlap between read and adapter for '
+                   'an adapter to be found.',
+        'match_read_wildcards': 'Interpret IUPAC wildcards in reads.',
+        'no_match_adapter_wildcards': 'Do not interpret IUPAC wildcards in '
+                                      'adapters.',
+    },
+    output_descriptions={
+        'trimmed_sequences': 'The resulting trimmed sequences.',
+    },
+    name='Find and remove adapters in demultiplexed single-end sequences.',
+    description='Search demultiplexed single-end sequences for adapters and '
+                'remove them. Please see the official cutadapt docs for full '
+                'details.',
 )
 
 plugin.methods.register_function(
