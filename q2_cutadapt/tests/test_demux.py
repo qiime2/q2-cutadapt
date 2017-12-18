@@ -117,7 +117,7 @@ class TestDemuxSingle(TestPluginBase):
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata,
-                                     error_tolerance=0.25)
+                                     error_rate=0.25)
 
         # This test should yield the same results as test_typical, above
         self.assert_demux_results(metadata.to_series(), obs_demuxed_art)

@@ -34,22 +34,22 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
-                         untrimmed_dir_fmt, error_tolerance):
+                         untrimmed_dir_fmt, error_rate):
     cmd = ['cutadapt',
-           '-g', 'file:%s' % barcode_fasta.name,
-           '-e', str(error_tolerance),
+           '--front', 'file:%s' % barcode_fasta.name,
+           '--error-rate', str(error_rate),
            ]
     # PAIRED-END
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
         cmd = cmd + [
             # {name} is a cutadapt convention for interpolating the sample id
             # into the filename.
-            '-o', '%s/{name}.1.fastq.gz' % str(per_sample_dir_fmt),
-            '-p', '%s/{name}.2.fastq.gz' % str(per_sample_dir_fmt),
+            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
+            '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),
             '--untrimmed-output',
-            '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
+            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
             '--untrimmed-paired-output',
-            '%s/reverse.fastq.gz' % str(untrimmed_dir_fmt),
+            os.path.join(str(untrimmed_dir_fmt), 'reverse.fastq.gz'),
             str(seqs_dir_fmt.forward_sequences.view(FastqGzFormat)),
             str(seqs_dir_fmt.reverse_sequences.view(FastqGzFormat)),
             ]
@@ -58,9 +58,9 @@ def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
         cmd = cmd + [
             # {name} is a cutadapt convention for interpolating the sample id
             # into the filename.
-            '-o', '%s/{name}.fastq.gz' % str(per_sample_dir_fmt),
+            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.fastq.gz'),
             '--untrimmed-output',
-            '%s/forward.fastq.gz' % str(untrimmed_dir_fmt),
+            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
             str(seqs_dir_fmt.file.view(FastqGzFormat)),
             ]
     return cmd
@@ -132,19 +132,19 @@ def _demux(seqs, barcodes, error_tolerance, untrimmed):
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.MetadataCategory,
-                 error_tolerance: float=0.1) -> \
+                 error_rate: float=0.1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
 
     untrimmed = MultiplexedSingleEndBarcodeInSequenceDirFmt()
-    return _demux(seqs, barcodes, error_tolerance, untrimmed)
+    return _demux(seqs, barcodes, error_rate, untrimmed)
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  forward_barcodes: qiime2.MetadataCategory,
-                 error_tolerance: float=0.1) -> \
+                 error_rate: float=0.1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
 
     untrimmed = MultiplexedPairedEndBarcodeInSequenceDirFmt()
-    return _demux(seqs, forward_barcodes, error_tolerance, untrimmed)
+    return _demux(seqs, forward_barcodes, error_rate, untrimmed)

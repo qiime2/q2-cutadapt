@@ -39,8 +39,8 @@ plugin.methods.register_function(
     },
     parameters={
         'barcodes': MetadataCategory,
-        'error_tolerance': Float % Range(0, 1, inclusive_start=True,
-                                         inclusive_end=True),
+        'error_rate': Float % Range(0, 1, inclusive_start=True,
+                                    inclusive_end=True),
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -52,10 +52,10 @@ plugin.methods.register_function(
     parameter_descriptions={
         'barcodes': 'The sample metadata category listing the per-sample '
                     'barcodes.',
-        'error_tolerance': 'The level of error tolerance, specified as the '
-                           'maximum allowable error rate. The default value '
-                           'specified by cutadapt is 0.1 (=10%), which is '
-                           'greater than `demux emp-*`, which is 0.0 (=0%).',
+        'error_rate': 'The level of error tolerance, specified as the maximum '
+                      'allowable error rate. The default value specified by '
+                      'cutadapt is 0.1 (=10%), which is greater than '
+                      '`demux emp-*`, which is 0.0 (=0%).',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -76,8 +76,8 @@ plugin.methods.register_function(
     },
     parameters={
         'forward_barcodes': MetadataCategory,
-        'error_tolerance': Float % Range(0, 1, inclusive_start=True,
-                                         inclusive_end=True),
+        'error_rate': Float % Range(0, 1, inclusive_start=True,
+                                    inclusive_end=True),
     },
     outputs=[
         ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -89,8 +89,8 @@ plugin.methods.register_function(
     parameter_descriptions={
         'forward_barcodes': 'The sample metadata category listing the '
                             'per-sample barcodes for the forward reads.',
-        'error_tolerance': 'The level of error tolerance, specified as the '
-                           'maximum allowable error rate.',
+        'error_rate': 'The level of error tolerance, specified as the maximum '
+                      'allowable error rate.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
