@@ -8,9 +8,11 @@
 
 from qiime2.plugin import Plugin, MetadataCategory, Float, Range
 from q2_types.multiplexed_sequences import (
-    MultiplexedSingleEndBarcodeInSequence)
+    MultiplexedSingleEndBarcodeInSequence,
+    MultiplexedPairedEndBarcodeInSequence)
 from q2_types.sample_data import SampleData
-from q2_types.per_sample_sequences import SequencesWithQuality
+from q2_types.per_sample_sequences import (SequencesWithQuality,
+                                           PairedEndSequencesWithQuality)
 
 import q2_cutadapt
 import q2_cutadapt._demux
@@ -37,8 +39,8 @@ plugin.methods.register_function(
     },
     parameters={
         'barcodes': MetadataCategory,
-        'error_tolerance': Float % Range(0, 1, inclusive_start=True,
-                                         inclusive_end=True),
+        'error_rate': Float % Range(0, 1, inclusive_start=True,
+                                    inclusive_end=True),
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -50,10 +52,10 @@ plugin.methods.register_function(
     parameter_descriptions={
         'barcodes': 'The sample metadata category listing the per-sample '
                     'barcodes.',
-        'error_tolerance': 'The level of error tolerance, specified as the '
-                           'maximum allowable error rate. The default value '
-                           'specified by cutadapt is 0.1 (=10%), which is '
-                           'greater than `demux emp-*`, which is 0.0 (=0%).',
+        'error_rate': 'The level of error tolerance, specified as the maximum '
+                      'allowable error rate. The default value specified by '
+                      'cutadapt is 0.1 (=10%), which is greater than '
+                      '`demux emp-*`, which is 0.0 (=0%).',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -61,6 +63,41 @@ plugin.methods.register_function(
                                'barcodes.',
     },
     name='Demultiplex single-end sequence data with barcodes in-sequence.',
+    description='Demultiplex sequence data (i.e., map barcode reads to '
+                'sample ids). Barcodes are expected to be located within the '
+                'sequence data (versus the header, or a separate barcode '
+                'file).',
+)
+
+plugin.methods.register_function(
+    function=q2_cutadapt._demux.demux_paired,
+    inputs={
+        'seqs': MultiplexedPairedEndBarcodeInSequence,
+    },
+    parameters={
+        'forward_barcodes': MetadataCategory,
+        'error_rate': Float % Range(0, 1, inclusive_start=True,
+                                    inclusive_end=True),
+    },
+    outputs=[
+        ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
+        ('untrimmed_sequences', MultiplexedPairedEndBarcodeInSequence),
+    ],
+    input_descriptions={
+        'seqs': 'The paired-end sequences to be demultiplexed.',
+    },
+    parameter_descriptions={
+        'forward_barcodes': 'The sample metadata category listing the '
+                            'per-sample barcodes for the forward reads.',
+        'error_rate': 'The level of error tolerance, specified as the maximum '
+                      'allowable error rate.',
+    },
+    output_descriptions={
+        'per_sample_sequences': 'The resulting demultiplexed sequences.',
+        'untrimmed_sequences': 'The sequences that were unmatched to '
+                               'barcodes.',
+    },
+    name='Demultiplex paired-end sequence data with barcodes in-sequence.',
     description='Demultiplex sequence data (i.e., map barcode reads to '
                 'sample ids). Barcodes are expected to be located within the '
                 'sequence data (versus the header, or a separate barcode '
