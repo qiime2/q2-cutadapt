@@ -38,55 +38,41 @@ def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fasta.name,
            '--error-rate', str(error_rate),
+           # {name} is a cutadapt convention for interpolating the sample id
+           # into the filename.
+           '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
+           '--untrimmed-output',
+           os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
            ]
-    # PAIRED-END
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
-        cmd = cmd + [
-            # {name} is a cutadapt convention for interpolating the sample id
-            # into the filename.
-            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
+        # PAIRED-END
+        cmd += [
             '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),
-            '--untrimmed-output',
-            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
             '--untrimmed-paired-output',
             os.path.join(str(untrimmed_dir_fmt), 'reverse.fastq.gz'),
             str(seqs_dir_fmt.forward_sequences.view(FastqGzFormat)),
             str(seqs_dir_fmt.reverse_sequences.view(FastqGzFormat)),
             ]
-    # SINGLE-END
     else:
-        cmd = cmd + [
-            # {name} is a cutadapt convention for interpolating the sample id
-            # into the filename.
-            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.fastq.gz'),
-            '--untrimmed-output',
-            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
-            str(seqs_dir_fmt.file.view(FastqGzFormat)),
-            ]
+        # SINGLE-END
+        cmd += [str(seqs_dir_fmt.file.view(FastqGzFormat))]
     return cmd
 
 
 def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
-    # PAIRED-END
+    read_directions = [1]
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
-        for (sample_id, barcode_id) in barcode_series.iteritems():
-            for read_direction in [1, 2]:
-                out_fp = per_sample_dir_fmt.sequences.path_maker(
-                    sample_id=sample_id, barcode_id=barcode_id,
-                    lane_number=1, read_number=read_direction)
-                src = os.path.join(str(per_sample_dir_fmt),
-                                   '%s.%d.fastq.gz' % (sample_id,
-                                                       read_direction))
-                if os.path.isfile(src):
-                    os.rename(src, str(out_fp))
-    # SINGLE-END
-    else:
-        for (sample_id, barcode_id) in barcode_series.iteritems():
+        # PAIRED-END
+        read_directions.append(2)
+
+    for (sample_id, barcode_id) in barcode_series.iteritems():
+        for read_direction in read_directions:
             out_fp = per_sample_dir_fmt.sequences.path_maker(
-                sample_id=sample_id, barcode_id=barcode_id, lane_number=1,
-                read_number=1)
+                sample_id=sample_id, barcode_id=barcode_id,
+                lane_number=1, read_number=read_direction)
             src = os.path.join(str(per_sample_dir_fmt),
-                               '%s.fastq.gz' % sample_id)
+                               '%s.%d.fastq.gz' % (sample_id,
+                                                   read_direction))
             if os.path.isfile(src):
                 os.rename(src, str(out_fp))
 

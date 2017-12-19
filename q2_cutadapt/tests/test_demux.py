@@ -320,8 +320,8 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
             self.assertTrue(barcode_fasta.name in obs[2])
         self.assertTrue('0.1' in obs[4])
         self.assertTrue(str(self.per_sample_dir_fmt) in obs[6])  # fwd
-        self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])  # rev
-        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])  # fwd
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[10])  # rev
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[8])  # fwd
         self.assertTrue(str(self.untrimmed_dir_fmt) in obs[12])  # rev
         exp_f = str(self.seqs_dir_fmt.forward_sequences.view(FastqGzFormat))
         self.assertEqual(exp_f, obs[13])
