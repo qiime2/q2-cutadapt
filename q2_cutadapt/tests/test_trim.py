@@ -13,6 +13,7 @@ from q2_cutadapt._trim import _build_trim_command
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
+    SingleLanePerSamplePairedEndFastqDirFmt,
     FastqGzFormat,
 )
 from qiime2 import Artifact
@@ -33,6 +34,20 @@ class TestTrimSingle(TestPluginBase):
             self.plugin.methods['trim_single'](demuxed)
 
 
+class TestTrimPaired(TestPluginBase):
+    package = 'q2_cutadapt.tests'
+
+    # This test is really just to make sure that the command runs - the
+    # detailed tests in the Util Tests below ensure the commands are crafted
+    # appropriately.
+    def test_typical(self):
+        demuxed = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end'))
+        with redirected_stdio(stdout=os.devnull):
+            self.plugin.methods['trim_paired'](demuxed)
+
+
 class TestTrimUtilsSingle(TestPluginBase):
     package = 'q2_cutadapt.tests'
 
@@ -45,9 +60,10 @@ class TestTrimUtilsSingle(TestPluginBase):
 
     def test_build_trim_command_typical(self):
         for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], 1, ['AAAA'],
-                                      ['GGGG'], ['CCCC'], 2, True, 3,
-                                      4, True, True, self.trimmed_sequences)
+            obs = _build_trim_command(self.demux_seqs, fwd[0], None, 1,
+                                      ['AAAA'], ['GGGG'], ['CCCC'], None, None,
+                                      None, 2, False, 3, 4, True, False,
+                                      self.trimmed_sequences)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_sequences.path / fwd[0])
@@ -67,10 +83,10 @@ class TestTrimUtilsSingle(TestPluginBase):
 
     def test_build_trim_command_multiple_adapters(self):
         for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], 1,
-                                      ['AAAA', 'GGGG', 'CCCC'], [], [], 2,
-                                      True, 3, 4, True, True,
-                                      self.trimmed_sequences)
+            obs = _build_trim_command(self.demux_seqs, fwd[0], None, 1,
+                                      ['AAAA', 'GGGG', 'CCCC'], None, None,
+                                      None, None, None, 2, True, 3, 4, True,
+                                      True, self.trimmed_sequences)
             obs = ' '.join(obs)
 
             self.assertTrue('--adapter AAAA' in obs)
@@ -79,17 +95,92 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--front' not in obs)
             self.assertTrue('--anywhere' not in obs)
 
+    def test_build_trim_command_no_adapters(self):
+        for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
+            obs = _build_trim_command(self.demux_seqs, fwd[0], None, 1, None,
+                                      None, None, None, None, None, 2, True, 3,
+                                      4, True, True, self.trimmed_sequences)
+            obs = ' '.join(obs)
+
+            self.assertTrue('--adapter' not in obs)
+            self.assertTrue('--front' not in obs)
+            self.assertTrue('--anywhere' not in obs)
+
     def test_build_trim_command_no_bool_flags(self):
         for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], 1,
-                                      ['AAAA', 'GGGG', 'CCCC'], [], [], 2,
-                                      False, 3, 4, False, False,
-                                      self.trimmed_sequences)
+            obs = _build_trim_command(self.demux_seqs, fwd[0], None, 1,
+                                      ['AAAA', 'GGGG', 'CCCC'], None, None,
+                                      None, None, None, 2, True, 3, 4, False,
+                                      True, self.trimmed_sequences)
             obs = ' '.join(obs)
 
             self.assertTrue('--no-indels' not in obs)
             self.assertTrue('--match-read-wildcards' not in obs)
             self.assertTrue('--no-match-adapter-wildcards' not in obs)
+
+
+class TestTrimUtilsPaired(TestPluginBase):
+    package = 'q2_cutadapt.tests'
+
+    def setUp(self):
+        super().setUp()
+
+        self.demux_seqs = SingleLanePerSamplePairedEndFastqDirFmt(
+            self.get_data_path('paired-end'), mode='r')
+        self.trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
+
+    def test_build_trim_command_typical(self):
+        itr = self.demux_seqs.sequences.iter_views(FastqGzFormat)
+        for fwd in itr:
+            rev = next(itr)
+            obs = _build_trim_command(self.demux_seqs, fwd[0], rev[0], 1,
+                                      ['AAAA'], ['GGGG'], ['CCCC'], ['TTTT'],
+                                      ['CCCC'], ['GGGG'], 2, False, 3, 4, True,
+                                      False, self.trimmed_sequences)
+            obs = ' '.join(obs)
+
+            self.assertTrue('-o %s' % str(self.trimmed_sequences.path / fwd[0])
+                            in obs)
+            self.assertTrue('-p %s' % str(self.trimmed_sequences.path / rev[0])
+                            in obs)
+            self.assertTrue('--cores 1' in obs)
+            self.assertTrue('--adapter AAAA' in obs)
+            self.assertTrue('--front GGGG' in obs)
+            self.assertTrue('--anywhere CCCC' in obs)
+            self.assertTrue('-A TTTT' in obs)
+            self.assertTrue('-G CCCC' in obs)
+            self.assertTrue('-B GGGG' in obs)
+            self.assertTrue('--error-rate 2' in obs)
+            self.assertTrue('--times 3' in obs)
+            self.assertTrue('--overlap 4' in obs)
+            self.assertTrue('--no-indels' in obs)
+            self.assertTrue('--match-read-wildcards' in obs)
+            self.assertTrue('--no-match-adapter-wildcards' in obs)
+
+            self.assertTrue(str(self.demux_seqs) in obs)
+
+    def test_build_trim_command_multiple_adapters(self):
+        itr = self.demux_seqs.sequences.iter_views(FastqGzFormat)
+        for fwd in itr:
+            rev = next(itr)
+            obs = _build_trim_command(self.demux_seqs, fwd[0], rev[0], 1,
+                                      ['AAAA', 'GGGG', 'CCCC'], None, None,
+                                      ['TTTT', 'CCCC', 'GGGG'], None, None, 2,
+                                      True, 3, 4, True, True,
+                                      self.trimmed_sequences)
+            obs = ' '.join(obs)
+
+            self.assertTrue('--adapter AAAA' in obs)
+            self.assertTrue('--adapter GGGG' in obs)
+            self.assertTrue('--adapter CCCC' in obs)
+            self.assertTrue('-A TTTT' in obs)
+            self.assertTrue('-A CCCC' in obs)
+            self.assertTrue('-A GGGG' in obs)
+
+            self.assertTrue('--front' not in obs)
+            self.assertTrue('--anywhere' not in obs)
+            self.assertTrue('-G' not in obs)
+            self.assertTrue('-B' not in obs)
 
 
 if __name__ == '__main__':
