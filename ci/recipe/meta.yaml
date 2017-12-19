@@ -23,9 +23,7 @@ requirements:
     - cutadapt
     - pyyaml
     - qiime2 {{ release }}.*
-    - q2templates {{ release }}.*
     - q2-types {{ release }}.*
-    - q2-metadata {{ release }}.*
 
 test:
   imports:
