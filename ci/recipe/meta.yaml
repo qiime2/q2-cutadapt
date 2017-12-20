@@ -21,7 +21,7 @@ requirements:
     - python 3.5*
     - setuptools
     - cutadapt
-    - pyyaml
+    - pigz
     - qiime2 {{ release }}.*
     - q2-types {{ release }}.*
 

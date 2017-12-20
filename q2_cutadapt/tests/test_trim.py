@@ -112,6 +112,7 @@ class TestTrimUtilsSingle(TestPluginBase):
         for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
             obs = _build_trim_command(self.demux_seqs, fwd[0], None,
                                       self.trimmed_seqs,
+                                      cores=0,
                                       adapter_f=['AAAA'],
                                       front_f=['GGGG'],
                                       anywhere_f=['CCCC'],
@@ -125,7 +126,7 @@ class TestTrimUtilsSingle(TestPluginBase):
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
                             in obs)
-            self.assertTrue('--cores 1' in obs)
+            self.assertTrue('--cores 0' in obs)
             self.assertTrue('--adapter AAAA' in obs)
             self.assertTrue('--front GGGG' in obs)
             self.assertTrue('--anywhere CCCC' in obs)
@@ -181,6 +182,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             rev = next(itr)
             obs = _build_trim_command(self.demux_seqs, fwd[0], rev[0],
                                       self.trimmed_seqs,
+                                      cores=0,
                                       adapter_f=['AAAA'],
                                       front_f=['GGGG'],
                                       anywhere_f=['CCCC'],
@@ -199,7 +201,7 @@ class TestTrimUtilsPaired(TestPluginBase):
                             in obs)
             self.assertTrue('-p %s' % str(self.trimmed_seqs.path / rev[0])
                             in obs)
-            self.assertTrue('--cores 1' in obs)
+            self.assertTrue('--cores 0' in obs)
             self.assertTrue('--adapter AAAA' in obs)
             self.assertTrue('--front GGGG' in obs)
             self.assertTrue('--anywhere CCCC' in obs)

@@ -73,12 +73,13 @@ plugin.methods.register_function(
         'cores': 'Number of CPU cores to use.',
         'adapter': 'Sequence of an adapter ligated to the 3\' end. The '
                    'adapter and any subsequent bases are trimmed. If a `$` '
-                   'is appended, the adapter is only found if it is a suffix '
-                   'of the read.',
+                   'is appended, the adapter is only found if it is at the '
+                   'end of the read.',
         'front': 'Sequence of an adapter ligated to the 5\' end. The adapter '
                  'and any preceding bases are trimmed. Partial matches at the '
                  '5\' end are allowed. If a `^` character is prepended, the '
-                 'adapter is only found if it is a prefix of the read.',
+                 'adapter is only found if it is at the beggining of the '
+                 'read.',
         'anywhere': 'Sequence of an adapter that may be ligated to the 5\' or '
                     '3\' end. Both types of matches as described under '
                     '`adapter` and `front` are allowed. If the first base of '
@@ -88,12 +89,16 @@ plugin.methods.register_function(
                     'not use if you know which end your adapter was ligated '
                     'to.',
         'error_rate': 'Maximum allowed error rate.',
-        'indels': 'Allow indels in alignments.',
-        'times': 'Remove up to `times` adapters from each read.',
-        'overlap': 'Require `overlap` overlap between read and adapter for '
-                   'an adapter to be found.',
-        'match_read_wildcards': 'Interpret IUPAC wildcards in reads.',
-        'match_adapter_wildcards': 'Interpret IUPAC wildcards in adapters.',
+        'indels': 'Allow insertions or deletions of bases when matching '
+                  'adapters.',
+        'times': 'Remove multiple occurrences of an adapter if it is '
+                 'repeated, up to `times` times.',
+        'overlap': 'Require at least `overlap` bases of overlap between read '
+                   'and adapter for an adapter to be found.',
+        'match_read_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
+                                'reads.',
+        'match_adapter_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
+                                   'adapters.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -135,16 +140,15 @@ plugin.methods.register_function(
     },
     parameter_descriptions={
         'cores': 'Number of CPU cores to use.',
-
         'adapter_f': 'Sequence of an adapter ligated to the 3\' end. The '
                      'adapter and any subsequent bases are trimmed. If a `$` '
-                     'is appended, the adapter is only found if it is a '
-                     'suffix of the read. Search in forward read.',
+                     'is appended, the adapter is only found if it is at the '
+                     'end of the read. Search in forward read.',
         'front_f': 'Sequence of an adapter ligated to the 5\' end. The '
                    'adapter and any preceding bases are trimmed. Partial '
                    'matches at the 5\' end are allowed. If a `^` character '
-                   'is prepended, the adapter is only found if it is a '
-                   'prefix of the read. Search in forward read.',
+                   'is prepended, the adapter is only found if it is at the '
+                   'beginning of the read. Search in forward read.',
         'anywhere_f': 'Sequence of an adapter that may be ligated to the 5\' '
                       'or 3\' end. Both types of matches as described under '
                       '`adapter` and `front` are allowed. If the first base '
@@ -155,13 +159,13 @@ plugin.methods.register_function(
                       'ligated to. Search in forward read.',
         'adapter_r': 'Sequence of an adapter ligated to the 3\' end. The '
                      'adapter and any subsequent bases are trimmed. If a `$` '
-                     'is appended, the adapter is only found if it is a '
-                     'suffix of the read. Search in reverse read.',
+                     'is appended, the adapter is only found if it is at the '
+                     'end of the read. Search in reverse read.',
         'front_r': 'Sequence of an adapter ligated to the 5\' end. The '
                    'adapter and any preceding bases are trimmed. Partial '
                    'matches at the 5\' end are allowed. If a `^` character '
-                   'is prepended, the adapter is only found if it is a '
-                   'prefix of the read. Search in reverse read.',
+                   'is prepended, the adapter is only found if it is at the '
+                   'beginning of the read. Search in reverse read.',
         'anywhere_r': 'Sequence of an adapter that may be ligated to the 5\' '
                       'or 3\' end. Both types of matches as described under '
                       '`adapter` and `front` are allowed. If the first base '
@@ -171,12 +175,16 @@ plugin.methods.register_function(
                       'preparations - do not use if you know which end your '
                       'adapter was ligated to. Search in reverse read.',
         'error_rate': 'Maximum allowed error rate.',
-        'indels': 'Allow indels in alignments.',
-        'times': 'Remove up to `times` adapters from each read.',
-        'overlap': 'Require `overlap` overlap between read and adapter for '
-                   'an adapter to be found.',
-        'match_read_wildcards': 'Interpret IUPAC wildcards in reads.',
-        'match_adapter_wildcards': 'Interpret IUPAC wildcards in adapters.',
+        'indels': 'Allow insertions or deletions of bases when matching '
+                  'adapters.',
+        'times': 'Remove multiple occurrences of an adapter if it is '
+                 'repeated, up to `times` times.',
+        'overlap': 'Require at least `overlap` bases of overlap between read '
+                   'and adapter for an adapter to be found.',
+        'match_read_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
+                                'reads.',
+        'match_adapter_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
+                                   'adapters.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',

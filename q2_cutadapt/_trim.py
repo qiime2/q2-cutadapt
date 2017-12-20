@@ -74,23 +74,23 @@ def _build_trim_command(demux_seqs, f_read, r_read, trimmed_seqs,
     if r_read is not None:
         cmd += ['-p', str(trimmed_seqs.path / r_read)]
 
-    if adapter_f:
+    if adapter_f is not None:
         for adapter in adapter_f:
             cmd += ['--adapter', adapter]
-    if front_f:
+    if front_f is not None:
         for adapter in front_f:
             cmd += ['--front', adapter]
-    if anywhere_f:
+    if anywhere_f is not None:
         for adapter in anywhere_f:
             cmd += ['--anywhere', adapter]
 
-    if adapter_r:
+    if adapter_r is not None:
         for adapter in adapter_r:
             cmd += ['-A', adapter]  # cutadapt doesn't have a long-form flag
-    if front_r:
+    if front_r is not None:
         for adapter in front_r:
             cmd += ['-G', adapter]  # cutadapt doesn't have a long-form flag
-    if anywhere_r:
+    if anywhere_r is not None:
         for adapter in anywhere_r:
             cmd += ['-B', adapter]  # cutadapt doesn't have a long-form flag
 
