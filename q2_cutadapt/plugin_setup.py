@@ -78,7 +78,7 @@ plugin.methods.register_function(
         'front': 'Sequence of an adapter ligated to the 5\' end. The adapter '
                  'and any preceding bases are trimmed. Partial matches at the '
                  '5\' end are allowed. If a `^` character is prepended, the '
-                 'adapter is only found if it is at the beggining of the '
+                 'adapter is only found if it is at the beginning of the '
                  'read.',
         'anywhere': 'Sequence of an adapter that may be ligated to the 5\' or '
                     '3\' end. Both types of matches as described under '
