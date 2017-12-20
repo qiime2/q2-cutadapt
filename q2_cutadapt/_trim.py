@@ -28,42 +28,71 @@ def run_commands(cmds, verbose=True):
         subprocess.run(cmd, check=True)
 
 
-def _build_trim_command(demux_seqs, fwd_read, rev_read, cores, adapter_fwd,
-                        front_fwd, anywhere_fwd, adapter_rev, front_rev,
-                        anywhere_rev, error_rate, indels, times, overlap,
-                        match_read_wildcards, match_adapter_wildcards,
-                        trimmed_sequences):
+_trim_defaults = {
+    'cores': 1,
+    'adapter_f': None,
+    'adapter_r': None,
+    'front_f': None,
+    'front_r': None,
+    'anywhere_f': None,
+    'anywhere_r': None,
+    'error_rate': 0.1,
+    'indels': True,
+    'times': 1,
+    'overlap': 3,
+    'match_read_wildcards': False,
+    'match_adapter_wildcards': True,
+}
+
+
+def _build_trim_command(demux_seqs, f_read, r_read, trimmed_seqs,
+                        cores=_trim_defaults['cores'],
+                        adapter_f=_trim_defaults['adapter_f'],
+                        front_f=_trim_defaults['front_f'],
+                        anywhere_f=_trim_defaults['anywhere_f'],
+                        adapter_r=_trim_defaults['adapter_r'],
+                        front_r=_trim_defaults['front_r'],
+                        anywhere_r=_trim_defaults['anywhere_r'],
+                        error_rate=_trim_defaults['error_rate'],
+                        indels=_trim_defaults['indels'],
+                        times=_trim_defaults['times'],
+                        overlap=_trim_defaults['overlap'],
+                        match_read_wildcards=_trim_defaults[
+                            'match_read_wildcards'],
+                        match_adapter_wildcards=_trim_defaults[
+                            'match_adapter_wildcards'],
+                        ):
     cmd = [
         'cutadapt',
         '--cores', str(cores),
         '--error-rate', str(error_rate),
         '--times', str(times),
         '--overlap', str(overlap),
-        '-o', str(trimmed_sequences.path / fwd_read),
+        '-o', str(trimmed_seqs.path / f_read),
     ]
 
-    if rev_read is not None:
-        cmd += ['-p', str(trimmed_sequences.path / rev_read)]
+    if r_read is not None:
+        cmd += ['-p', str(trimmed_seqs.path / r_read)]
 
-    if adapter_fwd:
-        for a in adapter_fwd:
-            cmd += ['--adapter', a]
-    if front_fwd:
-        for f in front_fwd:
-            cmd += ['--front', f]
-    if anywhere_fwd:
-        for a in anywhere_fwd:
-            cmd += ['--anywhere', a]
+    if adapter_f:
+        for adapter in adapter_f:
+            cmd += ['--adapter', adapter]
+    if front_f:
+        for adapter in front_f:
+            cmd += ['--front', adapter]
+    if anywhere_f:
+        for adapter in anywhere_f:
+            cmd += ['--anywhere', adapter]
 
-    if adapter_rev:
-        for a in adapter_rev:
-            cmd += ['-A', a]  # cutadapt doesn't have a long-form flag
-    if front_rev:
-        for f in front_rev:
-            cmd += ['-G', f]  # cutadapt doesn't have a long-form flag
-    if anywhere_rev:
-        for a in anywhere_rev:
-            cmd += ['-B', a]  # cutadapt doesn't have a long-form flag
+    if adapter_r:
+        for adapter in adapter_r:
+            cmd += ['-A', adapter]  # cutadapt doesn't have a long-form flag
+    if front_r:
+        for adapter in front_r:
+            cmd += ['-G', adapter]  # cutadapt doesn't have a long-form flag
+    if anywhere_r:
+        for adapter in anywhere_r:
+            cmd += ['-B', adapter]  # cutadapt doesn't have a long-form flag
 
     if not indels:
         cmd += ['--no-indels']
@@ -72,29 +101,37 @@ def _build_trim_command(demux_seqs, fwd_read, rev_read, cores, adapter_fwd,
     if not match_adapter_wildcards:
         cmd += ['--no-match-adapter-wildcards']
 
-    cmd += [str(demux_seqs.path / fwd_read)]
+    cmd += [str(demux_seqs.path / f_read)]
 
-    if rev_read is not None:
-        cmd += [str(demux_seqs.path / rev_read)]
+    if r_read is not None:
+        cmd += [str(demux_seqs.path / r_read)]
 
     return cmd
 
 
 def trim_single(demultiplexed_sequences:
-                SingleLanePerSampleSingleEndFastqDirFmt, cores: int=1,
-                adapter: str=None, front: str=None, anywhere: str=None,
-                error_rate: float=0.1, indels: bool=True, times: int=1,
-                overlap: int=3, match_read_wildcards: bool=False,
-                match_adapter_wildcards: bool=True) -> \
+                SingleLanePerSampleSingleEndFastqDirFmt,
+                cores: int=_trim_defaults['cores'],
+                adapter: str=_trim_defaults['adapter_f'],
+                front: str=_trim_defaults['front_f'],
+                anywhere: str=_trim_defaults['anywhere_f'],
+                error_rate: float=_trim_defaults['error_rate'],
+                indels: bool=_trim_defaults['indels'],
+                times: int=_trim_defaults['times'],
+                overlap: int=_trim_defaults['overlap'],
+                match_read_wildcards:
+                bool=_trim_defaults['match_read_wildcards'],
+                match_adapter_wildcards:
+                bool=_trim_defaults['match_adapter_wildcards']) -> \
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     for fwd in demultiplexed_sequences.sequences.iter_views(FastqGzFormat):
-        cmd = _build_trim_command(demultiplexed_sequences, fwd[0], None, cores,
-                                  adapter, front, anywhere, None, None, None,
-                                  error_rate, indels, times, overlap,
-                                  match_read_wildcards,
-                                  match_adapter_wildcards, trimmed_sequences)
+        cmd = _build_trim_command(demultiplexed_sequences, fwd[0], None,
+                                  trimmed_sequences, cores, adapter, front,
+                                  anywhere, None, None, None, error_rate,
+                                  indels, times, overlap, match_read_wildcards,
+                                  match_adapter_wildcards)
         cmds.append(cmd)
 
     run_commands(cmds)
@@ -102,12 +139,22 @@ def trim_single(demultiplexed_sequences:
 
 
 def trim_paired(demultiplexed_sequences:
-                SingleLanePerSamplePairedEndFastqDirFmt, cores: int=1,
-                adapter_f: str=None, front_f: str=None, anywhere_f: str=None,
-                adapter_r: str=None, front_r: str=None, anywhere_r: str=None,
-                error_rate: float=0.1, indels: bool=True, times: int=1,
-                overlap: int=3, match_read_wildcards: bool=False,
-                match_adapter_wildcards: bool=True) -> \
+                SingleLanePerSamplePairedEndFastqDirFmt,
+                cores: int=_trim_defaults['cores'],
+                adapter_f: str=_trim_defaults['adapter_f'],
+                front_f: str=_trim_defaults['front_f'],
+                anywhere_f: str=_trim_defaults['anywhere_f'],
+                adapter_r: str=_trim_defaults['adapter_r'],
+                front_r: str=_trim_defaults['front_r'],
+                anywhere_r: str=_trim_defaults['anywhere_r'],
+                error_rate: float=_trim_defaults['error_rate'],
+                indels: bool=_trim_defaults['indels'],
+                times: int=_trim_defaults['times'],
+                overlap: int=_trim_defaults['overlap'],
+                match_read_wildcards:
+                bool=_trim_defaults['match_read_wildcards'],
+                match_adapter_wildcards:
+                bool=_trim_defaults['match_adapter_wildcards']) -> \
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -115,10 +162,11 @@ def trim_paired(demultiplexed_sequences:
     for fwd in seqs:
         rev = next(seqs)
         cmd = _build_trim_command(demultiplexed_sequences, fwd[0], rev[0],
-                                  cores, adapter_f, front_f, anywhere_f,
-                                  adapter_r, front_r, anywhere_r, error_rate,
-                                  indels, times, overlap, match_read_wildcards,
-                                  match_adapter_wildcards, trimmed_sequences)
+                                  trimmed_sequences, cores, adapter_f, front_f,
+                                  anywhere_f, adapter_r, front_r, anywhere_r,
+                                  error_rate, indels, times, overlap,
+                                  match_read_wildcards,
+                                  match_adapter_wildcards)
         cmds.append(cmd)
 
     run_commands(cmds)
