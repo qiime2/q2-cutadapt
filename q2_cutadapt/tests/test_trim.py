@@ -6,6 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import gzip
+import itertools
 import os
 import unittest
 
@@ -28,11 +30,33 @@ class TestTrimSingle(TestPluginBase):
     # detailed tests in the Util Tests below ensure the commands are crafted
     # appropriately.
     def test_typical(self):
-        demuxed = Artifact.import_data('SampleData[SequencesWithQuality]',
-                                       self.get_data_path('single-end'))
+        demuxed_art = Artifact.import_data('SampleData[SequencesWithQuality]',
+                                           self.get_data_path('single-end'))
+        adapter = ['TACGGAGGATCC']
         with redirected_stdio(stdout=os.devnull):
-            self.plugin.methods['trim_single'](demuxed)
-        # TODO: test results
+            obs_art, = self.plugin.methods['trim_single'](demuxed_art,
+                                                          front=adapter)
+        demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        demuxed_seqs = demuxed.sequences.iter_views(FastqGzFormat)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        obs_seqs = obs.sequences.iter_views(FastqGzFormat)
+        # Iterate over each sample, side-by-side
+        for (_, exp_fp), (_, obs_fp) in zip(demuxed_seqs, obs_seqs):
+            exp_fh = gzip.open(str(exp_fp), 'rt')
+            obs_fh = gzip.open(str(obs_fp), 'rt')
+            # Iterate over expected and observed reads, side-by-side
+            for records in itertools.zip_longest(*[exp_fh] * 4, *[obs_fh] * 4):
+                (exp_seq_h, exp_seq, _, exp_qual,
+                 obs_seq_h, obs_seq, _, obs_qual) = records
+                # Make sure cutadapt hasn't shuffled the read order
+                self.assertEqual(exp_seq_h, obs_seq_h)
+                self.assertTrue(obs_seq in exp_seq)
+                # The adapter should not be present in the trimmed seqs
+                self.assertTrue('TACGGAGGATCC' not in obs_seq)
+                self.assertTrue(obs_qual in exp_qual)
+                # Make sure cutadapt trimmed the quality scores, too
+                self.assertEqual(len(obs_seq), len(obs_qual))
+            exp_fh.close(), obs_fh.close()
 
 
 class TestTrimPaired(TestPluginBase):
