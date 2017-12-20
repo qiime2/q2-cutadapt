@@ -25,7 +25,11 @@ setup(
         ['q2-cutadapt=q2_cutadapt.plugin_setup:plugin']
     },
     package_data={
-        'q2_cutadapt.tests': ['data/*'],
+        'q2_cutadapt.tests': [
+            'data/*',
+            'data/single-end/*',
+            'data/paired-end/*',
+        ],
     },
     zip_safe=False,
 )
