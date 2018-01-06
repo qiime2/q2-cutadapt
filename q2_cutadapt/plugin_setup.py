@@ -8,7 +8,8 @@
 
 from qiime2.plugin import (
     Plugin,
-    MetadataCategory,
+    MetadataColumn,
+    Categorical,
     Float,
     Range,
     Int,
@@ -203,7 +204,7 @@ plugin.methods.register_function(
         'seqs': MultiplexedSingleEndBarcodeInSequence,
     },
     parameters={
-        'barcodes': MetadataCategory,
+        'barcodes': MetadataColumn[Categorical],
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
     },
@@ -215,7 +216,7 @@ plugin.methods.register_function(
         'seqs': 'The single-end sequences to be demultiplexed.',
     },
     parameter_descriptions={
-        'barcodes': 'The sample metadata category listing the per-sample '
+        'barcodes': 'The sample metadata column listing the per-sample '
                     'barcodes.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate. The default value specified by '
@@ -240,7 +241,7 @@ plugin.methods.register_function(
         'seqs': MultiplexedPairedEndBarcodeInSequence,
     },
     parameters={
-        'forward_barcodes': MetadataCategory,
+        'forward_barcodes': MetadataColumn[Categorical],
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
     },
@@ -252,7 +253,7 @@ plugin.methods.register_function(
         'seqs': 'The paired-end sequences to be demultiplexed.',
     },
     parameter_descriptions={
-        'forward_barcodes': 'The sample metadata category listing the '
+        'forward_barcodes': 'The sample metadata column listing the '
                             'per-sample barcodes for the forward reads.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
