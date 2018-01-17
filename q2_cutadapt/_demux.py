@@ -117,7 +117,7 @@ def _demux(seqs, barcodes, error_tolerance, untrimmed):
 
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
-                 barcodes: qiime2.MetadataCategory,
+                 barcodes: qiime2.CategoricalMetadataColumn,
                  error_rate: float=0.1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
@@ -127,7 +127,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
-                 forward_barcodes: qiime2.MetadataCategory,
+                 forward_barcodes: qiime2.CategoricalMetadataColumn,
                  error_rate: float=0.1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):

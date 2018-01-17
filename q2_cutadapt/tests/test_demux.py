@@ -25,7 +25,7 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     FastqGzFormat)
-from qiime2 import Artifact, MetadataCategory
+from qiime2 import Artifact, CategoricalMetadataColumn
 from qiime2.util import redirected_stdio
 from qiime2.plugin.testing import TestPluginBase
 
@@ -59,9 +59,9 @@ class TestDemuxSingle(TestPluginBase):
             'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
 
     def test_typical(self):
-        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC'],
-                                    index=['sample_a', 'sample_b'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -72,9 +72,10 @@ class TestDemuxSingle(TestPluginBase):
                                       obs_untrimmed_art)
 
     def test_all_matched(self):
-        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC', 'GGGG'],
-                                    index=['sample_a', 'sample_b', 'sample_c'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -85,17 +86,18 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
     def test_none_matched(self):
-        metadata = MetadataCategory(pd.Series(['TTTT'], index=['sample_d'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['TTTT'], name='Barcode',
+                      index=pd.Index(['sample_d'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             with self.assertRaisesRegex(ValueError, 'demultiplexed'):
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
     def test_error_tolerance_filtering(self):
-        metadata = MetadataCategory(pd.Series(['AAAG', 'CCCC'],
-                                    index=['sample_a', 'sample_b'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAG', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -110,9 +112,9 @@ class TestDemuxSingle(TestPluginBase):
                                       obs_untrimmed_art)
 
     def test_error_tolerance_high_enough_to_prevent_filtering(self):
-        metadata = MetadataCategory(pd.Series(['AAAG', 'CCCC'],
-                                    index=['sample_a', 'sample_b'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAG', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -125,10 +127,10 @@ class TestDemuxSingle(TestPluginBase):
                                       obs_untrimmed_art)
 
     def test_extra_barcode_in_metadata(self):
-        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'],
-                                    index=['sample_a', 'sample_b', 'sample_c',
-                                           'sample_d'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c',
+                                      'sample_d'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -144,9 +146,10 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
     def test_variable_length_barcodes(self):
-        metadata = MetadataCategory(pd.Series(['AAAAA', 'CCCCCC', 'GGGG'],
-                                    index=['sample_a', 'sample_b', 'sample_c'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAAA', 'CCCCCC', 'GGGG'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
         muxed_sequences_fp = self.get_data_path('variable_length.fastq.gz')
         muxed_sequences = Artifact.import_data(
             'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
@@ -202,9 +205,9 @@ class TestDemuxPaired(TestPluginBase):
     # Just one proof-of-concept test here - the single-end test suite
     # covers the edge cases.
     def test_typical(self):
-        metadata = MetadataCategory(pd.Series(['AAAA', 'CCCC'],
-                                    index=['sample_a', 'sample_b'],
-                                    name='Barcode'))
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
