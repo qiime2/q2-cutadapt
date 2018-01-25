@@ -75,7 +75,10 @@ plugin.methods.register_function(
         'adapter': 'Sequence of an adapter ligated to the 3\' end. The '
                    'adapter and any subsequent bases are trimmed. If a `$` '
                    'is appended, the adapter is only found if it is at the '
-                   'end of the read.',
+                   'end of the read. If your sequence of interest is "framed" '
+                   'by a 5\' and a 3\' adapter, use this parameter to define '
+                   'a "linked" primer - see https://cutadapt.readthedocs.io '
+                   'for complete details.',
         'front': 'Sequence of an adapter ligated to the 5\' end. The adapter '
                  'and any preceding bases are trimmed. Partial matches at the '
                  '5\' end are allowed. If a `^` character is prepended, the '
@@ -144,7 +147,11 @@ plugin.methods.register_function(
         'adapter_f': 'Sequence of an adapter ligated to the 3\' end. The '
                      'adapter and any subsequent bases are trimmed. If a `$` '
                      'is appended, the adapter is only found if it is at the '
-                     'end of the read. Search in forward read.',
+                     'end of the read. Search in forward read. If your '
+                     'sequence of interest is "framed" by a 5\' and a 3\' '
+                     'adapter, use this parameter to define a "linked" primer '
+                     '- see https://cutadapt.readthedocs.io for complete '
+                     'details.',
         'front_f': 'Sequence of an adapter ligated to the 5\' end. The '
                    'adapter and any preceding bases are trimmed. Partial '
                    'matches at the 5\' end are allowed. If a `^` character '
@@ -161,7 +168,11 @@ plugin.methods.register_function(
         'adapter_r': 'Sequence of an adapter ligated to the 3\' end. The '
                      'adapter and any subsequent bases are trimmed. If a `$` '
                      'is appended, the adapter is only found if it is at the '
-                     'end of the read. Search in reverse read.',
+                     'end of the read. Search in reverse read. If your '
+                     'sequence of interest is "framed" by a 5\' and a 3\' '
+                     'adapter, use this parameter to define a "linked" primer '
+                     '- see https://cutadapt.readthedocs.io for complete '
+                     'details.',
         'front_r': 'Sequence of an adapter ligated to the 5\' end. The '
                    'adapter and any preceding bases are trimmed. Partial '
                    'matches at the 5\' end are allowed. If a `^` character '
