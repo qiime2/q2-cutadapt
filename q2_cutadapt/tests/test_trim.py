@@ -11,6 +11,8 @@ import itertools
 import os
 import unittest
 
+import pandas as pd
+
 from q2_cutadapt._trim import _build_trim_command
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
@@ -97,6 +99,37 @@ class TestTrimPaired(TestPluginBase):
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
 
+    def test_unordered(self):
+        demuxed_art = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-unordered'))
+        with redirected_stdio(stdout=os.devnull):
+            # The forward and reverse reads are identical in these data
+            obs_art, = self.plugin.methods['trim_paired'](demuxed_art,
+                                                          front_f=['TTTT'],
+                                                          front_r=['AAAA'])
+        demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        demuxed_seqs = demuxed.sequences.iter_views(FastqGzFormat)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        obs_seqs = obs.sequences.iter_views(FastqGzFormat)
+        # Iterate over each sample, side-by-side
+        for (_, exp_fp), (_, obs_fp) in zip(demuxed_seqs, obs_seqs):
+            exp_fh = gzip.open(str(exp_fp), 'rt')
+            obs_fh = gzip.open(str(obs_fp), 'rt')
+            # Iterate over expected and observed reads, side-by-side
+            for records in itertools.zip_longest(*[exp_fh] * 4, *[obs_fh] * 4):
+                (exp_seq_h, exp_seq, _, exp_qual,
+                 obs_seq_h, obs_seq, _, obs_qual) = records
+                # The adapter should not be present in the trimmed seqs
+                if 'R1_001.fastq' in str(obs_fp):
+                    self.assertNotIn('TTTT', obs_seq)
+                else:
+                    self.assertNotIn('AAAA', obs_seq)
+                self.assertTrue(obs_qual in exp_qual)
+                # Make sure cutadapt trimmed the quality scores, too
+                self.assertEqual(len(obs_seq), len(obs_qual))
+            exp_fh.close(), obs_fh.close()
+
 
 class TestTrimUtilsSingle(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -109,8 +142,9 @@ class TestTrimUtilsSingle(TestPluginBase):
         self.trimmed_seqs = CasavaOneEightSingleLanePerSampleDirFmt()
 
     def test_build_trim_command_typical(self):
-        for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], None,
+        df = self.demux_seqs.manifest.view(pd.DataFrame)
+        for _, fwd in df.itertuples():
+            obs = _build_trim_command(fwd, None,
                                       self.trimmed_seqs,
                                       cores=0,
                                       adapter_f=['AAAA'],
@@ -140,8 +174,9 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue(str(self.demux_seqs) in obs)
 
     def test_build_trim_command_multiple_adapters(self):
-        for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], None,
+        df = self.demux_seqs.manifest.view(pd.DataFrame)
+        for _, fwd in df.itertuples():
+            obs = _build_trim_command(fwd, None,
                                       self.trimmed_seqs,
                                       adapter_f=['AAAA', 'GGGG', 'CCCC'])
             obs = ' '.join(obs)
@@ -153,8 +188,9 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--anywhere' not in obs)
 
     def test_build_trim_command_no_adapters_or_flags(self):
-        for fwd in self.demux_seqs.sequences.iter_views(FastqGzFormat):
-            obs = _build_trim_command(self.demux_seqs, fwd[0], None,
+        df = self.demux_seqs.manifest.view(pd.DataFrame)
+        for _, fwd in df.itertuples():
+            obs = _build_trim_command(fwd, None,
                                       self.trimmed_seqs)
             obs = ' '.join(obs)
 
@@ -177,10 +213,9 @@ class TestTrimUtilsPaired(TestPluginBase):
         self.trimmed_seqs = CasavaOneEightSingleLanePerSampleDirFmt()
 
     def test_build_trim_command_typical(self):
-        itr = self.demux_seqs.sequences.iter_views(FastqGzFormat)
-        for fwd in itr:
-            rev = next(itr)
-            obs = _build_trim_command(self.demux_seqs, fwd[0], rev[0],
+        df = self.demux_seqs.manifest.view(pd.DataFrame)
+        for _, fwd, rev in df.itertuples():
+            obs = _build_trim_command(fwd, rev,
                                       self.trimmed_seqs,
                                       cores=0,
                                       adapter_f=['AAAA'],
@@ -218,11 +253,9 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue(str(self.demux_seqs) in obs)
 
     def test_build_trim_command_multiple_adapters(self):
-        itr = self.demux_seqs.sequences.iter_views(FastqGzFormat)
-        for fwd in itr:
-            rev = next(itr)
-            obs = _build_trim_command(self.demux_seqs, fwd[0], rev[0],
-                                      self.trimmed_seqs,
+        df = self.demux_seqs.manifest.view(pd.DataFrame)
+        for _, fwd, rev in df.itertuples():
+            obs = _build_trim_command(fwd, rev, self.trimmed_seqs,
                                       adapter_f=['AAAA', 'GGGG', 'CCCC'],
                                       adapter_r=['TTTT', 'CCCC', 'GGGG'])
             obs = ' '.join(obs)
