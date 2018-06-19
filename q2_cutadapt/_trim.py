@@ -6,13 +6,15 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import os
+
 import subprocess
+import pandas as pd
 
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
-    FastqGzFormat,
 )
 
 
@@ -45,7 +47,7 @@ _trim_defaults = {
 }
 
 
-def _build_trim_command(demux_seqs, f_read, r_read, trimmed_seqs,
+def _build_trim_command(f_read, r_read, trimmed_seqs,
                         cores=_trim_defaults['cores'],
                         adapter_f=_trim_defaults['adapter_f'],
                         front_f=_trim_defaults['front_f'],
@@ -68,11 +70,11 @@ def _build_trim_command(demux_seqs, f_read, r_read, trimmed_seqs,
         '--error-rate', str(error_rate),
         '--times', str(times),
         '--overlap', str(overlap),
-        '-o', str(trimmed_seqs.path / f_read),
+        '-o', str(trimmed_seqs.path / os.path.basename(f_read)),
     ]
 
     if r_read is not None:
-        cmd += ['-p', str(trimmed_seqs.path / r_read)]
+        cmd += ['-p', str(trimmed_seqs.path / os.path.basename(r_read))]
 
     if adapter_f is not None:
         for adapter in adapter_f:
@@ -101,10 +103,10 @@ def _build_trim_command(demux_seqs, f_read, r_read, trimmed_seqs,
     if not match_adapter_wildcards:
         cmd += ['--no-match-adapter-wildcards']
 
-    cmd += [str(demux_seqs.path / f_read)]
+    cmd += [f_read]
 
     if r_read is not None:
-        cmd += [str(demux_seqs.path / r_read)]
+        cmd += [r_read]
 
     return cmd
 
@@ -126,8 +128,9 @@ def trim_single(demultiplexed_sequences:
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
-    for fwd in demultiplexed_sequences.sequences.iter_views(FastqGzFormat):
-        cmd = _build_trim_command(demultiplexed_sequences, fwd[0], None,
+    df = demultiplexed_sequences.manifest.view(pd.DataFrame)
+    for _, fwd in df.itertuples():
+        cmd = _build_trim_command(fwd, None,
                                   trimmed_sequences, cores, adapter, front,
                                   anywhere, None, None, None, error_rate,
                                   indels, times, overlap, match_read_wildcards,
@@ -158,11 +161,10 @@ def trim_paired(demultiplexed_sequences:
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
-    seqs = demultiplexed_sequences.sequences.iter_views(FastqGzFormat)
-    for fwd in seqs:
-        rev = next(seqs)
-        cmd = _build_trim_command(demultiplexed_sequences, fwd[0], rev[0],
-                                  trimmed_sequences, cores, adapter_f, front_f,
+    df = demultiplexed_sequences.manifest.view(pd.DataFrame)
+    for _, fwd, rev in df.itertuples():
+        cmd = _build_trim_command(fwd, rev, trimmed_sequences, cores,
+                                  adapter_f, front_f,
                                   anywhere_f, adapter_r, front_r, anywhere_r,
                                   error_rate, indels, times, overlap,
                                   match_read_wildcards,
