@@ -30,6 +30,7 @@ setup(
             'data/*',
             'data/single-end/*',
             'data/paired-end/*',
+            'data/paired-end-unordered/*',
         ],
     },
     zip_safe=False,
