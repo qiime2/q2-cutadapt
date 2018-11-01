@@ -113,18 +113,18 @@ def _build_trim_command(f_read, r_read, trimmed_seqs,
 
 def trim_single(demultiplexed_sequences:
                 SingleLanePerSampleSingleEndFastqDirFmt,
-                cores: int=_trim_defaults['cores'],
-                adapter: str=_trim_defaults['adapter_f'],
-                front: str=_trim_defaults['front_f'],
-                anywhere: str=_trim_defaults['anywhere_f'],
-                error_rate: float=_trim_defaults['error_rate'],
-                indels: bool=_trim_defaults['indels'],
-                times: int=_trim_defaults['times'],
-                overlap: int=_trim_defaults['overlap'],
+                cores: int = _trim_defaults['cores'],
+                adapter: str = _trim_defaults['adapter_f'],
+                front: str = _trim_defaults['front_f'],
+                anywhere: str = _trim_defaults['anywhere_f'],
+                error_rate: float = _trim_defaults['error_rate'],
+                indels: bool = _trim_defaults['indels'],
+                times: int = _trim_defaults['times'],
+                overlap: int = _trim_defaults['overlap'],
                 match_read_wildcards:
-                bool=_trim_defaults['match_read_wildcards'],
+                bool = _trim_defaults['match_read_wildcards'],
                 match_adapter_wildcards:
-                bool=_trim_defaults['match_adapter_wildcards']) -> \
+                bool = _trim_defaults['match_adapter_wildcards']) -> \
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -143,21 +143,21 @@ def trim_single(demultiplexed_sequences:
 
 def trim_paired(demultiplexed_sequences:
                 SingleLanePerSamplePairedEndFastqDirFmt,
-                cores: int=_trim_defaults['cores'],
-                adapter_f: str=_trim_defaults['adapter_f'],
-                front_f: str=_trim_defaults['front_f'],
-                anywhere_f: str=_trim_defaults['anywhere_f'],
-                adapter_r: str=_trim_defaults['adapter_r'],
-                front_r: str=_trim_defaults['front_r'],
-                anywhere_r: str=_trim_defaults['anywhere_r'],
-                error_rate: float=_trim_defaults['error_rate'],
-                indels: bool=_trim_defaults['indels'],
-                times: int=_trim_defaults['times'],
-                overlap: int=_trim_defaults['overlap'],
+                cores: int = _trim_defaults['cores'],
+                adapter_f: str = _trim_defaults['adapter_f'],
+                front_f: str = _trim_defaults['front_f'],
+                anywhere_f: str = _trim_defaults['anywhere_f'],
+                adapter_r: str = _trim_defaults['adapter_r'],
+                front_r: str = _trim_defaults['front_r'],
+                anywhere_r: str = _trim_defaults['anywhere_r'],
+                error_rate: float = _trim_defaults['error_rate'],
+                indels: bool = _trim_defaults['indels'],
+                times: int = _trim_defaults['times'],
+                overlap: int = _trim_defaults['overlap'],
                 match_read_wildcards:
-                bool=_trim_defaults['match_read_wildcards'],
+                bool = _trim_defaults['match_read_wildcards'],
                 match_adapter_wildcards:
-                bool=_trim_defaults['match_adapter_wildcards']) -> \
+                bool = _trim_defaults['match_adapter_wildcards']) -> \
                     CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
