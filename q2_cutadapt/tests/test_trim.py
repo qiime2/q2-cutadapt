@@ -155,7 +155,8 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       times=3,
                                       overlap=4,
                                       match_read_wildcards=True,
-                                      match_adapter_wildcards=False)
+                                      match_adapter_wildcards=False,
+                                      minimum_length=2)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -170,6 +171,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-indels' in obs)
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
+            self.assertTrue('--minimum-length 2' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -200,6 +202,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-indels' not in obs)
             self.assertTrue('--match-read-wildcards' not in obs)
             self.assertTrue('--no-match-adapter-wildcards' not in obs)
+            self.assertTrue('--minimum-length 1' in obs)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
@@ -229,7 +232,8 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       times=3,
                                       overlap=4,
                                       match_read_wildcards=True,
-                                      match_adapter_wildcards=False)
+                                      match_adapter_wildcards=False,
+                                      minimum_length=2)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -249,6 +253,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--no-indels' in obs)
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
+            self.assertTrue('--minimum-length 2' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 

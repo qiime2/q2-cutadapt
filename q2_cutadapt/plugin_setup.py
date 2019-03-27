@@ -62,6 +62,7 @@ plugin.methods.register_function(
         'overlap': Int % Range(1, None),
         'match_read_wildcards': Bool,
         'match_adapter_wildcards': Bool,
+        'minimum_length': Int % Range(1, None),
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -102,6 +103,10 @@ plugin.methods.register_function(
                                 'reads.',
         'match_adapter_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
                                    'adapters.',
+        'minimum_length': 'Discard reads shorter than specified value. Note, '
+                          'the cutadapt default of 0 has been overridden, '
+                          'because that value produces empty sequence '
+                          'records.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -134,6 +139,7 @@ plugin.methods.register_function(
         'overlap': Int % Range(1, None),
         'match_read_wildcards': Bool,
         'match_adapter_wildcards': Bool,
+        'minimum_length': Int % Range(1, None),
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -196,6 +202,10 @@ plugin.methods.register_function(
                                 'reads.',
         'match_adapter_wildcards': 'Interpret IUPAC wildcards (e.g., N) in '
                                    'adapters.',
+        'minimum_length': 'Discard reads shorter than specified value. Note, '
+                          'the cutadapt default of 0 has been overridden, '
+                          'because that value produces empty sequence '
+                          'records.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
