@@ -163,6 +163,20 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
+    def test_batch_size(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata,
+                                     batch_size=1)
+
+        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
