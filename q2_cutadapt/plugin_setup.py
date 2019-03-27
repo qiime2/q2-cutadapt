@@ -63,6 +63,7 @@ plugin.methods.register_function(
         'match_read_wildcards': Bool,
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
+        'discard_untrimmed': Bool,
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -107,6 +108,7 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
+        'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -140,6 +142,7 @@ plugin.methods.register_function(
         'match_read_wildcards': Bool,
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
+        'discard_untrimmed': Bool,
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -206,6 +209,7 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
+        'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',

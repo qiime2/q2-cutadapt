@@ -60,6 +60,23 @@ class TestTrimSingle(TestPluginBase):
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
 
+    def test_min_length(self):
+        demuxed_art = Artifact.import_data('SampleData[SequencesWithQuality]',
+                                           self.get_data_path('single-end'))
+        # The following "adapter" has been picked specifically to remove
+        # the entire sequence with the ID @HWI-EAS440_0386:1:28:6491:1375#0/1.
+        adapter = ['GGGGGGATCGGGGGCG']
+        empty_seq_id = '@HWI-EAS440_0386:1:28:6491:1375#0/1'
+
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](demuxed_art,
+                                                          adapter=adapter)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    self.assertTrue(record[0] != empty_seq_id)
+
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -156,7 +173,8 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       overlap=4,
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
-                                      minimum_length=2)
+                                      minimum_length=2,
+                                      discard_untrimmed=True)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -172,6 +190,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
+            self.assertTrue('--discard-untrimmed' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -203,6 +222,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--match-read-wildcards' not in obs)
             self.assertTrue('--no-match-adapter-wildcards' not in obs)
             self.assertTrue('--minimum-length 1' in obs)
+            self.assertTrue('--discard-untrimmed' not in obs)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
@@ -233,7 +253,8 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       overlap=4,
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
-                                      minimum_length=2)
+                                      minimum_length=2,
+                                      discard_untrimmed=True)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -254,6 +275,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
+            self.assertTrue('--discard-untrimmed' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -276,6 +298,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--anywhere' not in obs)
             self.assertTrue('-G' not in obs)
             self.assertTrue('-B' not in obs)
+            self.assertTrue('--discard-trimmed' not in obs)
 
 
 if __name__ == '__main__':
