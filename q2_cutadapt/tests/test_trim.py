@@ -156,7 +156,8 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       overlap=4,
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
-                                      minimum_length=2)
+                                      minimum_length=2,
+                                      discard_untrimmed=True)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -172,6 +173,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
+            self.assertTrue('--discard-untrimmed' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -203,6 +205,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--match-read-wildcards' not in obs)
             self.assertTrue('--no-match-adapter-wildcards' not in obs)
             self.assertTrue('--minimum-length 1' in obs)
+            self.assertTrue('--discard-untrimmed' not in obs)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
@@ -233,7 +236,8 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       overlap=4,
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
-                                      minimum_length=2)
+                                      minimum_length=2,
+                                      discard_untrimmed=True)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -254,6 +258,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--match-read-wildcards' in obs)
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
+            self.assertTrue('--discard-untrimmed' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -276,6 +281,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--anywhere' not in obs)
             self.assertTrue('-G' not in obs)
             self.assertTrue('-B' not in obs)
+            self.assertTrue('--discard-trimmed' not in obs)
 
 
 if __name__ == '__main__':
