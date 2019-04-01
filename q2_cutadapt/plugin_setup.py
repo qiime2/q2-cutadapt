@@ -108,7 +108,7 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'discard_untrimmed': 'Discard reads in which an adapter was found.',
+        'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -209,7 +209,7 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'discard_untrimmed': 'Discard reads in which an adapter was found.',
+        'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
