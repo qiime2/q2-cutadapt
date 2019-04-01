@@ -98,10 +98,14 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def _demux(seqs, mux_fmt, barcodes, error_tolerance, batch_size):
+def _demux(seqs, barcodes, error_tolerance, mux_fmt, batch_size):
     barcodes = barcodes.to_series()
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
+    if batch_size > n_samples:
+        raise ValueError('batch_size needs to be less than or equal to the '
+                         'total number of samples (%d) - received %d.' % (
+                             n_samples, batch_size))
     batch_size = n_samples if batch_size == 0 else batch_size
     batches = np.arange(n_samples) // batch_size
     previous_untrimmed = seqs
@@ -129,7 +133,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
-    return _demux(seqs, mux_fmt, barcodes, error_rate, batch_size)
+    return _demux(seqs, barcodes, error_rate, mux_fmt, batch_size)
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
@@ -139,4 +143,4 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
-    return _demux(seqs, mux_fmt, forward_barcodes, error_rate, batch_size)
+    return _demux(seqs, forward_barcodes, error_rate, mux_fmt, batch_size)

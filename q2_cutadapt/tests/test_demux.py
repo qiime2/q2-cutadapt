@@ -177,6 +177,14 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
+    def test_invalid_batch_size(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with self.assertRaisesRegex(ValueError, '2.*received 5'):
+            self.demux_single_fn(self.muxed_sequences, metadata, batch_size=5)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
