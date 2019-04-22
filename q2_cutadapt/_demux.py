@@ -103,9 +103,9 @@ def _demux(seqs, barcodes, error_tolerance, mux_fmt, batch_size):
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
     if batch_size > n_samples:
-        raise ValueError('batch_size needs to be less than or equal to the '
-                         'total number of samples (%d) - received %d.' % (
-                             n_samples, batch_size))
+        raise ValueError('The batch_size (%d) cannot be greater than the '
+                         'number of samples (%d).' % (
+                             batch_size, n_samples))
     batch_size = n_samples if batch_size == 0 else batch_size
     batches = np.arange(n_samples) // batch_size
     previous_untrimmed = seqs

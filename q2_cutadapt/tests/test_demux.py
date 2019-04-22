@@ -182,7 +182,7 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
-        with self.assertRaisesRegex(ValueError, '2.*received 5'):
+        with self.assertRaisesRegex(ValueError, '5.*cannot be greater.*2'):
             self.demux_single_fn(self.muxed_sequences, metadata, batch_size=5)
 
     def test_batch_size_odd_number_of_samples(self):
