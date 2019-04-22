@@ -247,9 +247,11 @@ plugin.methods.register_function(
                       'allowable error rate. The default value specified by '
                       'cutadapt is 0.1 (=10%), which is greater than '
                       '`demux emp-*`, which is 0.0 (=0%).',
-        'batch_size': 'The number of samples to demultiplex at a time. Useful '
-                      'for working with datasets that consist of many samples '
-                      '. Set to "0" to process all samples at once.'
+        'batch_size': 'The number of samples cutadapt demultiplexes '
+                      'concurrently. Demultiplexing in smaller batches will '
+                      'yield the same result with marginal speed loss, and '
+                      'may solve "too many files" errors related to sample '
+                      'quantity. Set to "0" to process all samples at once.'
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -286,9 +288,11 @@ plugin.methods.register_function(
                             'per-sample barcodes for the forward reads.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
-        'batch_size': 'The number of samples to demultiplex at a time. Useful '
-                      'for working with datasets that consist of many samples '
-                      '. Set to "0" to process all samples at once.'
+        'batch_size': 'The number of samples cutadapt demultiplexes '
+                      'concurrently. Demultiplexing in smaller batches will '
+                      'yield the same result with marginal speed loss, and '
+                      'may solve "too many files" errors related to sample '
+                      'quantity. Set to "0" to process all samples at once.'
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
