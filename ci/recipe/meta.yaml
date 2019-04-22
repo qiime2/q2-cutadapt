@@ -22,6 +22,7 @@ requirements:
     - cutadapt
     - pigz
     - pandas
+    - numpy
     - qiime2 {{ release }}.*
     - q2-types {{ release }}.*
 
