@@ -272,6 +272,7 @@ plugin.methods.register_function(
     },
     parameters={
         'forward_barcodes': MetadataColumn[Categorical],
+        'reverse_barcodes': MetadataColumn[Categorical],
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
@@ -286,6 +287,8 @@ plugin.methods.register_function(
     parameter_descriptions={
         'forward_barcodes': 'The sample metadata column listing the '
                             'per-sample barcodes for the forward reads.',
+        'reverse_barcodes': 'The sample metadata column listing the '
+                            'per-sample barcodes for the reverse reads.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
         'batch_size': 'The number of samples cutadapt demultiplexes '

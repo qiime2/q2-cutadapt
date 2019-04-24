@@ -252,7 +252,27 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
         exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         b'@id6\nTGCATGCA\n+\nzzzzzzzz\n']
+                         b'@id6\nAAAATGCATGCA\n+\nzzzzzzzzzzzz\n']
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_di_typical(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     reverse_barcodes=reverse_barcodes)
+
+        self.assert_demux_results(forward_barcodes.to_series(),
+                                  obs_demuxed_art)
+        exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                         b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
 
@@ -274,7 +294,8 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
 
     def test_build_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta:
-            obs = _build_demux_command(self.seqs_dir_fmt, barcode_fasta,
+            obs = _build_demux_command(self.seqs_dir_fmt,
+                                       {'fwd': barcode_fasta, 'rev': None},
                                        self.per_sample_dir_fmt,
                                        self.untrimmed_dir_fmt,
                                        0.1)
@@ -353,7 +374,8 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
 
     def test_build_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta:
-            obs = _build_demux_command(self.seqs_dir_fmt, barcode_fasta,
+            obs = _build_demux_command(self.seqs_dir_fmt,
+                                       {'fwd': barcode_fasta, 'rev': None},
                                        self.per_sample_dir_fmt,
                                        self.untrimmed_dir_fmt,
                                        0.1)

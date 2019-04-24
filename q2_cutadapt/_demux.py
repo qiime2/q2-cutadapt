@@ -21,6 +21,7 @@ from q2_types.multiplexed_sequences import (
     MultiplexedPairedEndBarcodeInSequenceDirFmt,
 )
 
+import pandas as pd
 import numpy as np
 
 
@@ -35,10 +36,10 @@ def run_command(cmd, verbose=True):
     subprocess.run(cmd, check=True)
 
 
-def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
+def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
                          untrimmed_dir_fmt, error_rate):
     cmd = ['cutadapt',
-           '--front', 'file:%s' % barcode_fasta.name,
+           '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
            # {name} is a cutadapt convention for interpolating the sample id
            # into the filename.
@@ -48,6 +49,12 @@ def _build_demux_command(seqs_dir_fmt, barcode_fasta, per_sample_dir_fmt,
            ]
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
         # PAIRED-END
+        if barcode_fhs['rev'] is not None:
+            # Dual indices
+            cmd += [
+                '--pair-adapters',
+                '-G', 'file:%s' % barcode_fhs['rev'].name,
+            ]
         cmd += [
             '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),
             '--untrimmed-paired-output',
@@ -98,8 +105,18 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def _demux(seqs, barcodes, error_tolerance, mux_fmt, batch_size):
-    barcodes = barcodes.to_series()
+def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
+           mux_fmt, batch_size):
+    fwd_barcode_name = forward_barcodes.name
+    barcodes = forward_barcodes.to_series().to_frame()
+    if reverse_barcodes is not None:
+        if len(barcodes) != len(reverse_barcodes.ids):
+            raise ValueError('The number of forward barcodes does not match '
+                             'the number of reverse barcodes.')
+        rev_barcode_name = reverse_barcodes.name
+        rev_barcodes = reverse_barcodes.to_series()
+        barcodes = pd.concat([barcodes, rev_barcodes], axis=1)
+
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
     if batch_size > n_samples:
@@ -112,14 +129,23 @@ def _demux(seqs, barcodes, error_tolerance, mux_fmt, batch_size):
     for _, barcode_batch in barcodes.groupby(batches):
         current_untrimmed = mux_fmt()
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(current_untrimmed)
-        with tempfile.NamedTemporaryFile() as barcode_fasta:
-            _write_barcode_fasta(barcode_batch, barcode_fasta)
-            cmd = _build_demux_command(previous_untrimmed, barcode_fasta,
-                                       per_sample_sequences,
-                                       current_untrimmed, error_tolerance)
-            run_command(cmd)
+        open_fhs = {'fwd': tempfile.NamedTemporaryFile(), 'rev': None}
+        _write_barcode_fasta(barcode_batch[fwd_barcode_name], open_fhs['fwd'])
+        if reverse_barcodes is not None:
+            open_fhs['rev'] = tempfile.NamedTemporaryFile()
+            _write_barcode_fasta(barcode_batch[rev_barcode_name],
+                                 open_fhs['rev'])
+        cmd = _build_demux_command(previous_untrimmed, open_fhs,
+                                   per_sample_sequences,
+                                   current_untrimmed, error_tolerance)
+        run_command(cmd)
+        open_fhs['fwd'].close()
+        if reverse_barcodes is not None:
+            open_fhs['rev'].close()
         previous_untrimmed = current_untrimmed
-    _rename_files(seqs, per_sample_sequences, barcodes)
+        # Only use the forward barcode in the renamed files
+    _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
+
     muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
     if muxed == 0:
         raise ValueError('No samples were demultiplexed.')
@@ -133,14 +159,16 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
-    return _demux(seqs, barcodes, error_rate, mux_fmt, batch_size)
+    return _demux(seqs, barcodes, None, error_rate, mux_fmt, batch_size)
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
+                 reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
                  batch_size: int = 0) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
-    return _demux(seqs, forward_barcodes, error_rate, mux_fmt, batch_size)
+    return _demux(seqs, forward_barcodes, reverse_barcodes, error_rate,
+                  mux_fmt, batch_size)
