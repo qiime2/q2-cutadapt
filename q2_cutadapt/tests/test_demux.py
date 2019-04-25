@@ -252,7 +252,7 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
         exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         b'@id6\nAAAATGCATGCA\n+\nzzzzzzzzzzzz\n']
+                         b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_di_typical(self):
