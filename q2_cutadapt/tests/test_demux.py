@@ -390,6 +390,19 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         exp_r = str(self.seqs_dir_fmt.reverse_sequences.view(FastqGzFormat))
         self.assertEqual(exp_r, obs[14])
 
+    def test_build_di_demux_command(self):
+        with tempfile.NamedTemporaryFile() as barcode_fasta_f:
+            with tempfile.NamedTemporaryFile() as barcode_fasta_r:
+                obs = _build_demux_command(self.seqs_dir_fmt,
+                                           {'fwd': barcode_fasta_f,
+                                            'rev': barcode_fasta_r},
+                                           self.per_sample_dir_fmt,
+                                           self.untrimmed_dir_fmt,
+                                           0.1)
+                self.assertTrue(barcode_fasta_f.name in obs[2])
+                self.assertTrue('--pair-adapters' == obs[9])
+                self.assertTrue(barcode_fasta_r.name in obs[11])
+
     def test_rename_files(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_a.2.fastq.gz',
                    'sample_b.1.fastq.gz', 'sample_b.2.fastq.gz']:
