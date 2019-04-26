@@ -108,11 +108,15 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
            mux_fmt, batch_size):
     fwd_barcode_name = forward_barcodes.name
+    forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
     if reverse_barcodes is not None:
+        reverse_barcodes = reverse_barcodes.drop_missing_values()
         if len(barcodes) != len(reverse_barcodes.ids):
-            raise ValueError('The number of forward barcodes does not match '
-                             'the number of reverse barcodes.')
+            raise ValueError('The following samples do not have both forward '
+                             'and reverse barcodes: %s'
+                             % (', '.join(set(forward_barcodes.ids) ^
+                                          set(reverse_barcodes.ids))))
         rev_barcode_name = reverse_barcodes.name
         rev_barcodes = reverse_barcodes.to_series()
         barcodes = pd.concat([barcodes, rev_barcodes], axis=1)

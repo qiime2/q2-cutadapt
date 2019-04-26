@@ -275,6 +275,20 @@ class TestDemuxPaired(TestPluginBase):
                          b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_di_mismatched_barcodes(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'ACGT'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with self.assertRaisesRegex(ValueError, 'do not have.*sample_c'):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=forward_barcodes,
+                                 reverse_barcodes=reverse_barcodes)
+
 
 class TestDemuxUtilsSingleEnd(TestPluginBase):
     package = 'q2_cutadapt.tests'
