@@ -111,15 +111,30 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
     if reverse_barcodes is not None:
-        reverse_barcodes = reverse_barcodes.drop_missing_values()
-        if len(barcodes) != len(reverse_barcodes.ids):
-            raise ValueError('The following samples do not have both forward '
-                             'and reverse barcodes: %s'
-                             % (', '.join(set(forward_barcodes.ids) ^
-                                          set(reverse_barcodes.ids))))
+        barcode_pairs = set()
+        samples_w_missing_barcodes = set()
+        samples_w_dup_barcode_pairs = set()
         rev_barcode_name = reverse_barcodes.name
         rev_barcodes = reverse_barcodes.to_series()
-        barcodes = pd.concat([barcodes, rev_barcodes], axis=1)
+        # 'sort = false' below prevents a warning about future behavior changes
+        # by selecting the future behavior explicitly
+        barcodes = pd.concat([barcodes, rev_barcodes], axis=1, sort=False)
+
+        for sample_id, f_barcode, r_barcode in barcodes.itertuples():
+            if pd.isnull(f_barcode) or pd.isnull(r_barcode):
+                samples_w_missing_barcodes.add(sample_id)
+            if (f_barcode, r_barcode) in barcode_pairs:
+                samples_w_dup_barcode_pairs.add(sample_id)
+            barcode_pairs.add((f_barcode, r_barcode))
+
+        if samples_w_missing_barcodes:
+            raise ValueError('The following samples do not have both '
+                             'forward and reverse barcodes: %s'
+                             % ', '.join(sorted(samples_w_missing_barcodes)))
+        if samples_w_dup_barcode_pairs:
+            raise ValueError('The following samples have duplicate barcode'
+                             ' pairs: %s' %
+                             ', '.join(sorted(samples_w_dup_barcode_pairs)))
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
