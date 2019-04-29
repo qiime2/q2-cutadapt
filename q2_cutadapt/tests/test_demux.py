@@ -293,12 +293,12 @@ class TestDemuxPaired(TestPluginBase):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC', 'AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(
-                            ['sample_a', 'sample_b', 'sample_c', 'sample_d'],
+                            ['sample_a', 'sample_b', 'sample_d', 'sample_c'],
                             name='id')))
         reverse_barcodes = CategoricalMetadataColumn(
             pd.Series(['GGGG', 'TTTT', 'GGGG', 'TTTT'], name='ReverseBarcode',
                       index=pd.Index(
-                            ['sample_a', 'sample_b', 'sample_c', 'sample_d'],
+                            ['sample_a', 'sample_b', 'sample_d', 'sample_c'],
                             name='id')))
 
         with self.assertRaisesRegex(

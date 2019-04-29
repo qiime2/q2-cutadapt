@@ -112,8 +112,8 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
     barcodes = forward_barcodes.to_series().to_frame()
     if reverse_barcodes is not None:
         barcode_pairs = set()
-        samples_w_missing_barcodes = []
-        samples_w_dup_barcode_pairs = []
+        samples_w_missing_barcodes = set()
+        samples_w_dup_barcode_pairs = set()
         rev_barcode_name = reverse_barcodes.name
         rev_barcodes = reverse_barcodes.to_series()
         # 'sort = false' below prevents a warning about future behavior changes
@@ -122,19 +122,19 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
 
         for sample_id, f_barcode, r_barcode in barcodes.itertuples():
             if pd.isnull(f_barcode) or pd.isnull(r_barcode):
-                samples_w_missing_barcodes.append(sample_id)
+                samples_w_missing_barcodes.add(sample_id)
             if (f_barcode, r_barcode) in barcode_pairs:
-                samples_w_dup_barcode_pairs.append(sample_id)
+                samples_w_dup_barcode_pairs.add(sample_id)
             barcode_pairs.add((f_barcode, r_barcode))
 
         if samples_w_missing_barcodes:
             raise ValueError('The following samples do not have both '
                              'forward and reverse barcodes: %s'
-                             % ', '.join(samples_w_missing_barcodes))
+                             % ', '.join(sorted(samples_w_missing_barcodes)))
         if samples_w_dup_barcode_pairs:
             raise ValueError('The following samples have duplicate barcode'
                              ' pairs: %s' %
-                             ', '.join(samples_w_dup_barcode_pairs))
+                             ', '.join(sorted(samples_w_dup_barcode_pairs)))
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
