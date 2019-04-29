@@ -289,6 +289,20 @@ class TestDemuxPaired(TestPluginBase):
                                  forward_barcodes=forward_barcodes,
                                  reverse_barcodes=reverse_barcodes)
 
+    def test_di_duplicate_barcode_pairs(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'AAAA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                      name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGG', 'TTTT', 'GGGG'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                      name='id')))
+        with self.assertRaisesRegex(ValueError, 'duplicate barcode.*sample_c'):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=forward_barcodes,
+                                 reverse_barcodes=reverse_barcodes)
+
 
 class TestDemuxUtilsSingleEnd(TestPluginBase):
     package = 'q2_cutadapt.tests'

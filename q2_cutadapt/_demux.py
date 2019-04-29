@@ -107,19 +107,35 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
            mux_fmt, batch_size):
+    barcode_pairs = set()
+    samples_w_missing_barcodes = []
+    samples_w_dup_barcode_pairs = []
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
     if reverse_barcodes is not None:
-        reverse_barcodes = reverse_barcodes.drop_missing_values()
-        if len(barcodes) != len(reverse_barcodes.ids):
-            raise ValueError('The following samples do not have both forward '
-                             'and reverse barcodes: %s'
-                             % (', '.join(set(forward_barcodes.ids) ^
-                                          set(reverse_barcodes.ids))))
         rev_barcode_name = reverse_barcodes.name
         rev_barcodes = reverse_barcodes.to_series()
-        barcodes = pd.concat([barcodes, rev_barcodes], axis=1)
+        # 'sort = false' below prevents a warning about future behavior changes
+        # by selecting the future behavior explicitly
+        barcodes = pd.concat([barcodes, rev_barcodes], axis=1, sort=False)
+
+        for sample_id, f_barcode, r_barcode in barcodes.itertuples():
+            # Any samples missing a for/rev barcode? pandas sets absent
+            # barcodes to NaN. Unlike other values, NaN != itself (PEP754)
+            if f_barcode != f_barcode or r_barcode != r_barcode:
+                samples_w_missing_barcodes.append(sample_id)
+            if (f_barcode, r_barcode) in barcode_pairs:
+                samples_w_dup_barcode_pairs.append(sample_id)
+            barcode_pairs.add((f_barcode, r_barcode))
+
+            if samples_w_missing_barcodes:
+                raise ValueError('The following samples do not have both '
+                                 'forward and reverse barcodes: %s'
+                                 % samples_w_missing_barcodes)
+            if samples_w_dup_barcode_pairs:
+                raise ValueError('The following samples have duplicate barcode'
+                                 ' pairs: %s' % samples_w_dup_barcode_pairs)
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
