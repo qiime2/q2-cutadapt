@@ -200,6 +200,27 @@ class TestDemuxSingle(TestPluginBase):
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
+    def test_min_length(self):
+        metadata = CategoricalMetadataColumn(
+            # The third barcode is meant to completely remove the only GGGG
+            # coded sequence
+            pd.Series(['AAAA','CCCC','GGGGACGTACGT'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                      name='id')))
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata,
+                                     batch_size=2)
+
+        obs = obs_demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        num_files = 0
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            num_files += 1
+        # Since the only GGGG coded sequence was removed, only AAAA and CCCC
+        # files should exist leaving two files
+        self.assertEqual(num_files, 2)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -330,13 +351,15 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                                        {'fwd': barcode_fasta, 'rev': None},
                                        self.per_sample_dir_fmt,
                                        self.untrimmed_dir_fmt,
-                                       0.1)
+                                       0.1,
+                                       2)
             self.assertTrue(barcode_fasta.name in obs[2])
         self.assertTrue('0.1' in obs[4])
-        self.assertTrue(str(self.per_sample_dir_fmt) in obs[6])
-        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[8])
+        self.assertTrue('2' in obs[6])
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])
         self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
-                         obs[9])
+                         obs[11])
 
     def test_rename_files_single(self):
         for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
@@ -410,17 +433,19 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
                                        {'fwd': barcode_fasta, 'rev': None},
                                        self.per_sample_dir_fmt,
                                        self.untrimmed_dir_fmt,
-                                       0.1)
+                                       0.1,
+                                       2)
             self.assertTrue(barcode_fasta.name in obs[2])
         self.assertTrue('0.1' in obs[4])
-        self.assertTrue(str(self.per_sample_dir_fmt) in obs[6])  # fwd
-        self.assertTrue(str(self.per_sample_dir_fmt) in obs[10])  # rev
-        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[8])  # fwd
-        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[12])  # rev
+        self.assertTrue('2' in obs[6])
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])  # fwd
+        self.assertTrue(str(self.per_sample_dir_fmt) in obs[12])  # rev
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])  # fwd
+        self.assertTrue(str(self.untrimmed_dir_fmt) in obs[14])  # rev
         exp_f = str(self.seqs_dir_fmt.forward_sequences.view(FastqGzFormat))
-        self.assertEqual(exp_f, obs[13])
+        self.assertEqual(exp_f, obs[15])
         exp_r = str(self.seqs_dir_fmt.reverse_sequences.view(FastqGzFormat))
-        self.assertEqual(exp_r, obs[14])
+        self.assertEqual(exp_r, obs[16])
 
     def test_build_di_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta_f:
@@ -430,10 +455,11 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
                                             'rev': barcode_fasta_r},
                                            self.per_sample_dir_fmt,
                                            self.untrimmed_dir_fmt,
-                                           0.1)
+                                           0.1,
+                                           2)
                 self.assertTrue(barcode_fasta_f.name in obs[2])
-                self.assertTrue('--pair-adapters' == obs[9])
-                self.assertTrue(barcode_fasta_r.name in obs[11])
+                self.assertTrue('--pair-adapters' == obs[11])
+                self.assertTrue(barcode_fasta_r.name in obs[13])
 
     def test_rename_files(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_a.2.fastq.gz',

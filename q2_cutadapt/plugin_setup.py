@@ -212,7 +212,7 @@ plugin.methods.register_function(
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
-        'trimmed_sequences': 'The resulting trimmed sequences.',
+        'trimmed_sequences': 'The resulting trimmed sequences.'
     },
     name='Find and remove adapters in demultiplexed paired-end sequences.',
     description='Search demultiplexed paired-end sequences for adapters and '
@@ -232,6 +232,7 @@ plugin.methods.register_function(
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
+        'minimum_length': Int % Range(1, None),
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -251,7 +252,11 @@ plugin.methods.register_function(
                       'concurrently. Demultiplexing in smaller batches will '
                       'yield the same result with marginal speed loss, and '
                       'may solve "too many files" errors related to sample '
-                      'quantity. Set to "0" to process all samples at once.'
+                      'quantity. Set to "0" to process all samples at once.',
+        'minimum_length': 'Discard reads shorter than specified value. Note, '
+                          'the cutadapt default of 0 has been overridden, '
+                          'because that value produces empty sequence '
+                          'records.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -276,6 +281,7 @@ plugin.methods.register_function(
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
+        'minimum_length': Int % Range(1, None),
     },
     outputs=[
         ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -295,7 +301,11 @@ plugin.methods.register_function(
                       'concurrently. Demultiplexing in smaller batches will '
                       'yield the same result with marginal speed loss, and '
                       'may solve "too many files" errors related to sample '
-                      'quantity. Set to "0" to process all samples at once.'
+                      'quantity. Set to "0" to process all samples at once.',
+        'minimum_length': 'Discard reads shorter than specified value. Note, '
+                          'the cutadapt default of 0 has been overridden, '
+                          'because that value produces empty sequence '
+                          'records.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
