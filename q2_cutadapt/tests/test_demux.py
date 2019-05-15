@@ -210,16 +210,16 @@ class TestDemuxSingle(TestPluginBase):
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
-                self.demux_single_fn(self.muxed_sequences, metadata,
-                                     batch_size=2)
+                self.demux_single_fn(self.muxed_sequences, metadata)
 
         obs = obs_demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
-        num_files = 0
-        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
-            num_files += 1
-        # Since the only GGGG coded sequence was removed, only AAAA and CCCC
-        # files should exist leaving two files
-        self.assertEqual(num_files, 2)
+
+        obs_f1, obs_f2 = obs.sequences.iter_views(FastqGzFormat)
+        obs_f1_expected = 'sample_a_AAAA_L001_R1_001.fastq.gz'
+        obs_f2_expected = 'sample_b_CCCC_L001_R1_001.fastq.gz'
+
+        self.assertTrue(str(obs_f1[0]) == obs_f1_expected)
+        self.assertTrue(str(obs_f2[0]) == obs_f2_expected)
 
 
 class TestDemuxPaired(TestPluginBase):

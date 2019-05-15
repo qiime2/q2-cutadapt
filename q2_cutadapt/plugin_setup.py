@@ -212,7 +212,7 @@ plugin.methods.register_function(
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
     },
     output_descriptions={
-        'trimmed_sequences': 'The resulting trimmed sequences.'
+        'trimmed_sequences': 'The resulting trimmed sequences.',
     },
     name='Find and remove adapters in demultiplexed paired-end sequences.',
     description='Search demultiplexed paired-end sequences for adapters and '
