@@ -37,10 +37,11 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
-                         untrimmed_dir_fmt, error_rate):
+                         untrimmed_dir_fmt, error_rate, minimum_length):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
+           '--minimum-length', str(minimum_length),
            # {name} is a cutadapt convention for interpolating the sample id
            # into the filename.
            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
@@ -106,7 +107,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 
 def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
-           mux_fmt, batch_size):
+           mux_fmt, batch_size, minimum_length):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -156,7 +157,8 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
                                  open_fhs['rev'])
         cmd = _build_demux_command(previous_untrimmed, open_fhs,
                                    per_sample_sequences,
-                                   current_untrimmed, error_tolerance)
+                                   current_untrimmed, error_tolerance,
+                                   minimum_length)
         run_command(cmd)
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
@@ -174,20 +176,23 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.CategoricalMetadataColumn,
                  error_rate: float = 0.1,
-                 batch_size: int = 0) -> \
+                 batch_size: int = 0,
+                 minimum_length: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
-    return _demux(seqs, barcodes, None, error_rate, mux_fmt, batch_size)
+    return _demux(seqs, barcodes, None, error_rate, mux_fmt, batch_size,
+                  minimum_length)
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
-                 batch_size: int = 0) -> \
+                 batch_size: int = 0,
+                 minimum_length: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
     return _demux(seqs, forward_barcodes, reverse_barcodes, error_rate,
-                  mux_fmt, batch_size)
+                  mux_fmt, batch_size, minimum_length)
