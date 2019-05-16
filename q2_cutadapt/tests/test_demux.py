@@ -204,7 +204,7 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             # The third barcode is meant to completely remove the only GGGG
             # coded sequence
-            pd.Series(['AAAA','CCCC','GGGGACGTACGT'], name='Barcode',
+            pd.Series(['AAAA', 'CCCC', 'GGGGACGTACGT'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                       name='id')))
 
@@ -214,12 +214,10 @@ class TestDemuxSingle(TestPluginBase):
 
         obs = obs_demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
 
-        obs_f1, obs_f2 = obs.sequences.iter_views(FastqGzFormat)
-        obs_f1_expected = 'sample_a_AAAA_L001_R1_001.fastq.gz'
-        obs_f2_expected = 'sample_b_CCCC_L001_R1_001.fastq.gz'
+        (obs_f1, _), (obs_f2, _) = obs.sequences.iter_views(FastqGzFormat)
 
-        self.assertTrue(str(obs_f1[0]) == obs_f1_expected)
-        self.assertTrue(str(obs_f2[0]) == obs_f2_expected)
+        self.assertEqual('sample_a_AAAA_L001_R1_001.fastq.gz', str(obs_f1))
+        self.assertEqual('sample_b_CCCC_L001_R1_001.fastq.gz', str(obs_f2))
 
 
 class TestDemuxPaired(TestPluginBase):
