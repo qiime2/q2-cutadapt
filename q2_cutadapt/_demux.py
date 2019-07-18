@@ -107,7 +107,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 
 def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
-           mux_fmt, batch_size, minimum_length):
+           mux_fmt, batch_size, minimum_length, mixed_orientation=False):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -160,6 +160,15 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
                                    current_untrimmed, error_tolerance,
                                    minimum_length)
         run_command(cmd)
+        if reverse_barcodes is not None and mixed_orientation:
+            temp = open_fhs['fwd']
+            open_fhs['fwd'] = open_fhs['rev']
+            open_fhs['rev'] = temp
+            cmd = _build_demux_command(previous_untrimmed, open_fhs,
+                                       per_sample_sequences,
+                                       current_untrimmed, error_tolerance,
+                                       minimum_length)
+            run_command(cmd)
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
             open_fhs['rev'].close()
@@ -190,9 +199,10 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
-                 minimum_length: int = 1) -> \
+                 minimum_length: int = 1,
+                 mixed_orientation: bool = False) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
     return _demux(seqs, forward_barcodes, reverse_barcodes, error_rate,
-                  mux_fmt, batch_size, minimum_length)
+                  mux_fmt, batch_size, minimum_length, mixed_orientation)
