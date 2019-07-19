@@ -307,10 +307,9 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        # This help text is very much a work in progress
         'mixed_orientation': 'Whether your data contains mixed orientation '
-                             'reads or not. Mixed orientation reads are when '
-                             'R1 and R2 contain both forward and reverse '
+                             'reads or not. Mixed orientation is when the '
+                             'same file contains both forward and reverse '
                              'reads.'
     },
     output_descriptions={
