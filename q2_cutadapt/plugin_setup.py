@@ -307,10 +307,9 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'mixed_orientation': 'Whether your data contains mixed orientation '
-                             'reads or not. Mixed orientation is when the '
-                             'same file contains both forward and reverse '
-                             'reads.'
+        'mixed_orientation': 'Handle demultiplexing of mixed orientation '
+                             'reads (i.e. when forward and reverse reads '
+                             'coexist in the same file).'
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
