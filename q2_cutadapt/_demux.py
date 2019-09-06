@@ -133,7 +133,7 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
                              'forward and reverse barcodes (note: if your '
                              'reads are in single index mixed orientation, '
                              'try again with all of your barcodes in a single '
-                             'file): %s'
+                             'metadata column): %s'
                              % ', '.join(sorted(samples_w_missing_barcodes)))
         if samples_w_dup_barcode_pairs:
             raise ValueError('The following samples have duplicate barcode'
