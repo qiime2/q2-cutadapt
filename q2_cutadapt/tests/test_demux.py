@@ -356,7 +356,7 @@ class TestDemuxPaired(TestPluginBase):
                          b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
-    def test_multiple_orientations_single_barcode_two_barcode_files(self):
+    def test_multiple_orientations_single_barcode_two_barcode_columns(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA'], name='ForwardBarcode',
                       index=pd.Index(['sample_a'], name='id')))
