@@ -328,7 +328,6 @@ class TestDemuxPaired(TestPluginBase):
                          b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
-    # TODO: Make sure user knows to put all barcodes in one file for this case
     def test_multiple_orientations_single_barcode(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'TTTT'], name='ForwardBarcode',
@@ -356,6 +355,34 @@ class TestDemuxPaired(TestPluginBase):
         exp_untrimmed = [b'@id1\nACGTACGT\n+\nzzzzzzzz\n',
                          b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_multiple_orientations_single_barcode_two_barcode_files(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a'], name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['TTTT'], name='ForwardBarcode',
+                      index=pd.Index(['sample_b'], name='id')))
+
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'single-barcode/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'single-barcode/reverse.fastq.gz')
+
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with self.assertRaisesRegex(ValueError, 'following samples do '
+                                    'not.*try again.*sample_a, sample_b'):
+            with redirected_stdio(stderr=os.devnull):
+                obs_demuxed_art, obs_untrimmed_art = \
+                    self.demux_paired_fn(mixed_orientation_sequences,
+                                         forward_barcodes=forward_barcodes,
+                                         reverse_barcodes=reverse_barcodes,
+                                         mixed_orientation=True)
 
     def test_di_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
