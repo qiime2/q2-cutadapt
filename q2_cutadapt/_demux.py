@@ -160,8 +160,11 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
                                    current_untrimmed, error_tolerance,
                                    minimum_length)
         run_command(cmd)
-        if reverse_barcodes is not None and mixed_orientation:
-            open_fhs['fwd'], open_fhs['rev'] = open_fhs['rev'], open_fhs['fwd']
+        if mixed_orientation:
+            (previous_untrimmed.forward_sequences,
+             previous_untrimmed.reverse_sequences) = \
+                (previous_untrimmed.reverse_sequences,
+                 previous_untrimmed.forward_sequences)
             cmd = _build_demux_command(previous_untrimmed, open_fhs,
                                        per_sample_sequences,
                                        current_untrimmed, error_tolerance,

@@ -32,6 +32,7 @@ setup(
             'data/paired-end/*',
             'data/paired-end-unordered/*',
             'data/mixed_orientation/*',
+            'data/single-barcode/*',
         ],
     },
     zip_safe=False,

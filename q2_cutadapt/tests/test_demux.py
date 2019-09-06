@@ -324,8 +324,37 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
-        exp_untrimmed = [b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         b'@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n']
+        exp_untrimmed = [b'@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n',
+                         b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    # TODO: Make sure user knows to put all barcodes in one file for this case
+    def test_multiple_orientations_single_barcode(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'TTTT'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'single-barcode/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'single-barcode/reverse.fastq.gz')
+
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     mixed_orientation=True)
+
+        self.assert_demux_results(forward_barcodes.to_series(),
+                                  obs_demuxed_art)
+        exp_untrimmed = [b'@id1\nACGTACGT\n+\nzzzzzzzz\n',
+                         b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_di_mismatched_barcodes(self):
