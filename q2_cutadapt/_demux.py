@@ -168,6 +168,10 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
         run_command(cmd)
 
         if mixed_orientation:
+            if reverse_barcodes is not None:
+                raise ValueError('Dual-indexed barcodes for mixed orientation '
+                                 'reads are not currently supported.')
+
             (previous_untrimmed.forward_sequences,
              previous_untrimmed.reverse_sequences) = \
                 (previous_untrimmed.reverse_sequences,
