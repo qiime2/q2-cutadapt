@@ -296,7 +296,7 @@ class TestDemuxPaired(TestPluginBase):
 
     def test_multiple_orientations_single_barcode(self):
         forward_barcodes = CategoricalMetadataColumn(
-            pd.Series(['AAAA', 'TTTT'], name='ForwardBarcode',
+            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
@@ -318,8 +318,9 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
-        exp_untrimmed = [b'@id1\nACGTACGT\n+\nzzzzzzzz\n',
-                         b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n']
+        exp_untrimmed = [b'@id1\nCATAAT\n+\nzzzzzz\n@id4\nTGCCC\n+\nzzzzz\n',
+                         b'@id1\nAAAAATTATG\n+\nzzzzzzzzzz\n'
+                         b'@id4\nCCCCGGGCA\n+\nzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_multiple_orientations_single_barcode_two_barcode_columns(self):
