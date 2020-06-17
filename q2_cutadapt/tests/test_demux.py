@@ -232,7 +232,6 @@ class TestDemuxPaired(TestPluginBase):
         zipped = zip(exp, obs_demuxed_seqs)
         for (sample_id, barcode), (filename, _) in zipped:
             filename = str(filename)
-            print(filename, sample_id, barcode)
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
 
@@ -241,11 +240,9 @@ class TestDemuxPaired(TestPluginBase):
             MultiplexedPairedEndBarcodeInSequenceDirFmt)
         obs_untrimmed_f = obs_untrimmed.forward_sequences.view(FastqGzFormat)
         obs_untrimmed_f = gzip.decompress(obs_untrimmed_f.path.read_bytes())
-        print('fwd', obs_untrimmed_f)
         self.assertEqual(exp[0], obs_untrimmed_f)
         obs_untrimmed_r = obs_untrimmed.reverse_sequences.view(FastqGzFormat)
         obs_untrimmed_r = gzip.decompress(obs_untrimmed_r.path.read_bytes())
-        print('rev', obs_untrimmed_r)
         self.assertEqual(exp[1], obs_untrimmed_r)
 
     def setUp(self):
