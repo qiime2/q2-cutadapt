@@ -106,7 +106,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def _demux(seqs, per_sample_seqs, forward_barcodes, reverse_barcodes,
+def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
            error_tolerance, mux_fmt, batch_size, minimum_length):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
@@ -145,7 +145,6 @@ def _demux(seqs, per_sample_seqs, forward_barcodes, reverse_barcodes,
         raise ValueError('The batch_size (%d) cannot be greater than the '
                          'number of samples (%d).' % (
                              batch_size, n_samples))
-
     batch_size = n_samples if batch_size == 0 else batch_size
     batches = np.arange(n_samples) // batch_size
     previous_untrimmed = seqs
@@ -154,31 +153,25 @@ def _demux(seqs, per_sample_seqs, forward_barcodes, reverse_barcodes,
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(current_untrimmed)
         open_fhs = {'fwd': tempfile.NamedTemporaryFile(), 'rev': None}
         _write_barcode_fasta(barcode_batch[fwd_barcode_name], open_fhs['fwd'])
-
         if reverse_barcodes is not None:
             open_fhs['rev'] = tempfile.NamedTemporaryFile()
             _write_barcode_fasta(barcode_batch[rev_barcode_name],
                                  open_fhs['rev'])
-
         cmd = _build_demux_command(previous_untrimmed, open_fhs,
-                                   per_sample_seqs,
+                                   per_sample_sequences,
                                    current_untrimmed, error_tolerance,
                                    minimum_length)
         run_command(cmd)
-
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
             open_fhs['rev'].close()
-
         previous_untrimmed = current_untrimmed
 
     # Only use the forward barcode in the renamed files
-    _rename_files(seqs, per_sample_seqs, barcodes[fwd_barcode_name])
-
-    muxed = len(list(per_sample_seqs.sequences.iter_views(FastqGzFormat)))
+    _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
+    muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
     if muxed == 0:
         raise ValueError('No samples were demultiplexed.')
-
     return previous_untrimmed
 
 
