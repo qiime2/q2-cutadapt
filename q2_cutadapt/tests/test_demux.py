@@ -232,6 +232,7 @@ class TestDemuxPaired(TestPluginBase):
         zipped = zip(exp, obs_demuxed_seqs)
         for (sample_id, barcode), (filename, _) in zipped:
             filename = str(filename)
+            print(filename, sample_id, barcode)
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
 
@@ -240,9 +241,11 @@ class TestDemuxPaired(TestPluginBase):
             MultiplexedPairedEndBarcodeInSequenceDirFmt)
         obs_untrimmed_f = obs_untrimmed.forward_sequences.view(FastqGzFormat)
         obs_untrimmed_f = gzip.decompress(obs_untrimmed_f.path.read_bytes())
+        print('fwd', obs_untrimmed_f)
         self.assertEqual(exp[0], obs_untrimmed_f)
         obs_untrimmed_r = obs_untrimmed.reverse_sequences.view(FastqGzFormat)
         obs_untrimmed_r = gzip.decompress(obs_untrimmed_r.path.read_bytes())
+        print('rev', obs_untrimmed_r)
         self.assertEqual(exp[1], obs_untrimmed_r)
 
     def setUp(self):
@@ -294,15 +297,15 @@ class TestDemuxPaired(TestPluginBase):
                          b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
-    def test_multiple_orientations_single_barcode(self):
+    def test_mixed_orientation_success(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
-            'single-barcode/forward.fastq.gz')
+            'mixed-orientation/forward.fastq.gz')
         mixed_orientation_sequences_r_fp = self.get_data_path(
-            'single-barcode/reverse.fastq.gz')
+            'mixed-orientation/reverse.fastq.gz')
 
         with tempfile.TemporaryDirectory() as temp:
             shutil.copy(mixed_orientation_sequences_f_fp, temp)
@@ -318,38 +321,8 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
-        exp_untrimmed = [b'@id1\nCATAAT\n+\nzzzzzz\n@id4\nTGCCC\n+\nzzzzz\n',
-                         b'@id1\nAAAAATTATG\n+\nzzzzzzzzzz\n'
-                         b'@id4\nCCCCGGGCA\n+\nzzzzzzzzz\n']
-        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
-
-    def test_multiple_orientations_single_barcode_two_barcode_columns(self):
-        forward_barcodes = CategoricalMetadataColumn(
-            pd.Series(['AAAA'], name='ForwardBarcode',
-                      index=pd.Index(['sample_a'], name='id')))
-        reverse_barcodes = CategoricalMetadataColumn(
-            pd.Series(['TTTT'], name='ForwardBarcode',
-                      index=pd.Index(['sample_b'], name='id')))
-
-        mixed_orientation_sequences_f_fp = self.get_data_path(
-            'single-barcode/forward.fastq.gz')
-        mixed_orientation_sequences_r_fp = self.get_data_path(
-            'single-barcode/reverse.fastq.gz')
-
-        with tempfile.TemporaryDirectory() as temp:
-            shutil.copy(mixed_orientation_sequences_f_fp, temp)
-            shutil.copy(mixed_orientation_sequences_r_fp, temp)
-            mixed_orientation_sequences = Artifact.import_data(
-                'MultiplexedPairedEndBarcodeInSequence', temp)
-
-        with self.assertRaisesRegex(ValueError, 'following samples do '
-                                    'not.*try again.*sample_a, sample_b'):
-            with redirected_stdio(stderr=os.devnull):
-                obs_demuxed_art, obs_untrimmed_art = \
-                    self.demux_paired_fn(mixed_orientation_sequences,
-                                         forward_barcodes=forward_barcodes,
-                                         reverse_barcodes=reverse_barcodes,
-                                         mixed_orientation=True)
+        # Everything should match
+        self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
 
     def test_di_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
