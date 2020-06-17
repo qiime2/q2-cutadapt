@@ -106,8 +106,8 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
-           mux_fmt, batch_size, minimum_length):
+def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
+           error_tolerance, mux_fmt, batch_size, minimum_length):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -130,14 +130,16 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
 
         if samples_w_missing_barcodes:
             raise ValueError('The following samples do not have both '
-                             'forward and reverse barcodes: %s'
+                             'forward and reverse barcodes (note: if your '
+                             'reads are in single index mixed orientation, '
+                             'try again with all of your barcodes in a single '
+                             'metadata column): %s'
                              % ', '.join(sorted(samples_w_missing_barcodes)))
         if samples_w_dup_barcode_pairs:
             raise ValueError('The following samples have duplicate barcode'
                              ' pairs: %s' %
                              ', '.join(sorted(samples_w_dup_barcode_pairs)))
 
-    per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     n_samples = len(barcodes)
     if batch_size > n_samples:
         raise ValueError('The batch_size (%d) cannot be greater than the '
@@ -164,13 +166,13 @@ def _demux(seqs, forward_barcodes, reverse_barcodes, error_tolerance,
         if reverse_barcodes is not None:
             open_fhs['rev'].close()
         previous_untrimmed = current_untrimmed
-        # Only use the forward barcode in the renamed files
-    _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
 
+    # Only use the forward barcode in the renamed files
+    _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
     muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
     if muxed == 0:
         raise ValueError('No samples were demultiplexed.')
-    return per_sample_sequences, previous_untrimmed
+    return previous_untrimmed
 
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
@@ -180,9 +182,14 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  minimum_length: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedSingleEndBarcodeInSequenceDirFmt):
+    per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
-    return _demux(seqs, barcodes, None, error_rate, mux_fmt, batch_size,
-                  minimum_length)
+
+    untrimmed = _demux(
+        seqs, per_sample_sequences, barcodes, None, error_rate, mux_fmt,
+        batch_size, minimum_length)
+
+    return per_sample_sequences, untrimmed
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
@@ -190,9 +197,33 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
-                 minimum_length: int = 1) -> \
+                 minimum_length: int = 1,
+                 mixed_orientation: bool = False) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
+    if mixed_orientation and reverse_barcodes is not None:
+        raise ValueError('Dual-indexed barcodes for mixed orientation '
+                         'reads are not supported.')
+
+    per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
-    return _demux(seqs, forward_barcodes, reverse_barcodes, error_rate,
-                  mux_fmt, batch_size, minimum_length)
+
+    untrimmed = _demux(
+        seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
+        error_rate, mux_fmt, batch_size, minimum_length)
+
+    if mixed_orientation:
+        fwd = untrimmed.forward_sequences.view(FastqGzFormat)
+        rev = untrimmed.reverse_sequences.view(FastqGzFormat)
+
+        remaining_seqs = MultiplexedPairedEndBarcodeInSequenceDirFmt()
+        # fwd -> rev && rev -> fwd
+        remaining_seqs.forward_sequences.write_data(rev, FastqGzFormat)
+        remaining_seqs.reverse_sequences.write_data(fwd, FastqGzFormat)
+
+        untrimmed = _demux(
+            remaining_seqs, per_sample_sequences, forward_barcodes,
+            reverse_barcodes, error_rate, mux_fmt, batch_size,
+            minimum_length)
+
+    return per_sample_sequences, untrimmed

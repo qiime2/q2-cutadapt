@@ -282,6 +282,7 @@ plugin.methods.register_function(
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
+        'mixed_orientation': Bool,
     },
     outputs=[
         ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -306,6 +307,9 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
+        'mixed_orientation': 'Handle demultiplexing of mixed orientation '
+                             'reads (i.e. when forward and reverse reads '
+                             'coexist in the same file).'
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',

@@ -31,6 +31,7 @@ setup(
             'data/single-end/*',
             'data/paired-end/*',
             'data/paired-end-unordered/*',
+            'data/mixed-orientation/*',
         ],
     },
     zip_safe=False,
