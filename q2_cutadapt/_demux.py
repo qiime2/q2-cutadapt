@@ -106,6 +106,13 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
+def _is_empty_fastqgz(fastqgz):
+    fp = fastqgz.path.as_posix()
+    with gzip.open(fp, 'rb') as f:
+        data = f.read(1)
+    return len(data) == 0
+
+
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
            error_tolerance, mux_fmt, batch_size, minimum_length):
     fwd_barcode_name = forward_barcodes.name
@@ -169,8 +176,10 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
 
     # Only use the forward barcode in the renamed files
     _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
-    muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
-    if muxed == 0:
+    seqs = per_sample_sequences.sequences.iter_views(FastqGzFormat)
+    seqs = [seq for _, seq in seqs]
+    empty_fastqs = map(_is_empty_fastqgz, seqs)
+    if all(empty_fastqs):
         raise ValueError('No samples were demultiplexed.')
     return previous_untrimmed
 
