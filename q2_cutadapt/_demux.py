@@ -106,11 +106,13 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
-def _is_empty_fastqgz(fastqgz):
-    fp = fastqgz.path.as_posix()
-    with gzip.open(fp, 'rb') as f:
-        data = f.read(1)
-    return len(data) == 0
+def _clean_empty(seqs):
+    """Clean up empty files output by Cutadapt"""
+    for _, fastqgz in seqs.sequences.iter_views(FastqGzFormat):
+        with gzip.open(str(fastqgz), 'rb') as f:
+            data = f.read(1)
+        if len(data) == 0:
+            (seqs.path / fastqgz.path).unlink()
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
@@ -176,10 +178,9 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
 
     # Only use the forward barcode in the renamed files
     _rename_files(seqs, per_sample_sequences, barcodes[fwd_barcode_name])
-    seqs = per_sample_sequences.sequences.iter_views(FastqGzFormat)
-    seqs = [seq for _, seq in seqs]
-    empty_fastqs = map(_is_empty_fastqgz, seqs)
-    if all(empty_fastqs):
+    _clean_empty(per_sample_sequences)
+    muxed = len(list(per_sample_sequences.sequences.iter_views(FastqGzFormat)))
+    if muxed == 0:
         raise ValueError('No samples were demultiplexed.')
     return previous_untrimmed
 
