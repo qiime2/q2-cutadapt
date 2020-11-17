@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import gzip
+import itertools
 import os
 import pathlib
 import shutil
@@ -318,7 +319,24 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
-        # Everything should match
+
+        obs = obs_demuxed_art.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        obs = obs.sequences.iter_views(FastqGzFormat)
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id1\n', 'GGGGTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
+                '@id3\n', 'GGGGTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
+               ['@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id4\n', 'TTTTTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
+                '@id2\n', 'TTTTTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n']]
+
+        for (_, obs), exp in itertools.zip_longest(obs, exp):
+            with gzip.open(str(obs), 'rt') as fh:
+                obs = fh.readlines()
+            self.assertEqual(obs, exp)
+
+        # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
 
     def test_di_mismatched_barcodes(self):
