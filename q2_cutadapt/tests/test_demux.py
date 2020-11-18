@@ -317,6 +317,9 @@ class TestDemuxPaired(TestPluginBase):
                                      forward_barcodes=forward_barcodes,
                                      mixed_orientation=True)
 
+        obs_demuxed_art.validate(level='max')
+        self.assertTrue(True)
+
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
 

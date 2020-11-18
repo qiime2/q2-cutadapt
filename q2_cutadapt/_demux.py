@@ -8,6 +8,7 @@
 
 import gzip
 import os
+import shutil
 import subprocess
 import tempfile
 
@@ -96,8 +97,7 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
 def _merge_files(src, dst):
     with gzip.open(src, mode='rt', encoding='ascii') as src_fh, \
             gzip.open(dst, mode='at', encoding='ascii') as dst_fh:
-        for line in src_fh:
-            dst_fh.write(line)
+        shutil.copyfileobj(src_fh, dst_fh)
 
 
 def _write_barcode_fasta(barcode_series, barcode_fasta):
