@@ -83,24 +83,8 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
             src = os.path.join(str(per_sample_dir_fmt),
                                '%s.%d.fastq.gz' % (sample_id,
                                                    read_direction))
-
-            # TODO: remove this outer guard when we upgrade to cutadapt 3
             if os.path.isfile(src):
-                if out_fp.exists():
-                    _merge_files(src, str(out_fp))
-                    os.remove(src)
-                else:
-                    os.rename(src, str(out_fp))
-
-
-def _merge_files(src, dst):
-    src_fh = gzip.open(src, mode='rt', encoding='ascii')
-    dst_fh = gzip.open(dst, mode='at', encoding='ascii')
-
-    for line in src_fh:
-        dst_fh.write(line)
-
-    src_fh.close(), dst_fh.close()
+                os.rename(src, str(out_fp))
 
 
 def _write_barcode_fasta(barcode_series, barcode_fasta):
