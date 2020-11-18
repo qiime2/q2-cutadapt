@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import gzip
+import itertools
 import os
 import pathlib
 import shutil
@@ -33,15 +34,20 @@ from qiime2.plugin.testing import TestPluginBase
 class TestDemuxSingle(TestPluginBase):
     package = 'q2_cutadapt.tests'
 
-    def assert_demux_results(self, exp_samples_and_barcodes, obs_demuxed_art):
+    def assert_demux_results(self, exp_samples_and_barcodes, exp_results,
+                             obs_demuxed_art):
         obs_demuxed = obs_demuxed_art.view(
             SingleLanePerSampleSingleEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
-        zipped = zip(exp_samples_and_barcodes.iteritems(), obs_demuxed_seqs)
-        for (sample_id, barcode), (filename, _) in zipped:
+        zipped = itertools.zip_longest(exp_samples_and_barcodes.iteritems(),
+                                       exp_results, obs_demuxed_seqs)
+        for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
+            with gzip.open(str(fmt), 'rt') as fh:
+                obs = fh.readlines()
+            self.assertEqual(exp, obs)
 
     def assert_untrimmed_results(self, exp, obs_untrimmed_art):
         obs_untrimmed = obs_untrimmed_art.view(
@@ -62,12 +68,17 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
@@ -76,12 +87,18 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                                      name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
@@ -98,6 +115,9 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAG', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -105,7 +125,8 @@ class TestDemuxSingle(TestPluginBase):
 
         # sample_a is dropped because of a substitution error (AAAA vs AAAG)
         exp_samples_and_barcodes = pd.Series(['CCCC'], index=['sample_b'])
-        self.assert_demux_results(exp_samples_and_barcodes, obs_demuxed_art)
+        self.assert_demux_results(exp_samples_and_barcodes, exp,
+                                  obs_demuxed_art)
         self.assert_untrimmed_results(b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
                                       b'@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
                                       b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
@@ -115,6 +136,11 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAG', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -122,7 +148,7 @@ class TestDemuxSingle(TestPluginBase):
                                      error_rate=0.25)
 
         # This test should yield the same results as test_typical, above
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
@@ -131,6 +157,12 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c',
                                       'sample_d'], name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -141,7 +173,8 @@ class TestDemuxSingle(TestPluginBase):
         exp_samples_and_barcodes = pd.Series(['AAAA', 'CCCC', 'GGGG'],
                                              index=['sample_a', 'sample_b',
                                                     'sample_c'])
-        self.assert_demux_results(exp_samples_and_barcodes, obs_demuxed_art)
+        self.assert_demux_results(exp_samples_and_barcodes, exp,
+                                  obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
@@ -153,27 +186,36 @@ class TestDemuxSingle(TestPluginBase):
         muxed_sequences_fp = self.get_data_path('variable_length.fastq.gz')
         muxed_sequences = Artifact.import_data(
             'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(muxed_sequences, metadata)
 
-        # This test should yield the same results as test_typical, above, just
-        # with variable length barcodes
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
     def test_batch_size(self):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata,
                                      batch_size=1)
 
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
@@ -190,13 +232,19 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                       name='id')))
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
+                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
+               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata,
                                      batch_size=2)
 
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
