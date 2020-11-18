@@ -271,17 +271,21 @@ class TestDemuxSingle(TestPluginBase):
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
 
-    def assert_demux_results(self, exp_samples_and_barcodes, obs_demuxed_art):
+    def assert_demux_results(self, exp_samples_and_barcodes, exp_results,
+                             obs_demuxed_art):
         obs_demuxed = obs_demuxed_art.view(
             SingleLanePerSamplePairedEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
         # Since we are working with fwd/rev reads, duplicate each list elem
         exp = [x for x in exp_samples_and_barcodes.iteritems() for _ in (0, 1)]
-        zipped = zip(exp, obs_demuxed_seqs)
-        for (sample_id, barcode), (filename, _) in zipped:
+        zipped = itertools.zip_longest(exp, exp_results, obs_demuxed_seqs)
+        for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
+            with gzip.open(str(fmt), 'rt') as fh:
+                obs = fh.readlines()
+            self.assertEqual(exp, obs)
 
     def assert_untrimmed_results(self, exp, obs_untrimmed_art):
         obs_untrimmed = obs_untrimmed_art.view(
