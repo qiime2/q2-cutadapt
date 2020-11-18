@@ -95,7 +95,7 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
 
 def _merge_files(src, dst):
     with gzip.open(src, mode='rt', encoding='ascii') as src_fh, \
-        gzip.open(dst, mode='at', encoding='ascii') as dst_fh:
+            gzip.open(dst, mode='at', encoding='ascii') as dst_fh:
         for line in src_fh:
             dst_fh.write(line)
 
