@@ -94,13 +94,10 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
 
 
 def _merge_files(src, dst):
-    src_fh = gzip.open(src, mode='rt', encoding='ascii')
-    dst_fh = gzip.open(dst, mode='at', encoding='ascii')
-
-    for line in src_fh:
-        dst_fh.write(line)
-
-    src_fh.close(), dst_fh.close()
+    with gzip.open(src, mode='rt', encoding='ascii') as src_fh, \
+        gzip.open(dst, mode='at', encoding='ascii') as dst_fh:
+        for line in src_fh:
+            dst_fh.write(line)
 
 
 def _write_barcode_fasta(barcode_series, barcode_fasta):
