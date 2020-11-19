@@ -284,7 +284,7 @@ class TestDemuxPaired(TestPluginBase):
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
             with gzip.open(str(fmt), 'rt') as fh:
-                obs = fh.readlines()
+                obs = ''.join(fh.readlines())
             self.assertEqual(exp, obs)
 
     def assert_untrimmed_results(self, exp, obs_untrimmed_art):
@@ -317,11 +317,28 @@ class TestDemuxPaired(TestPluginBase):
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
+        exp = [
+            # sample a, fwd
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b, fwd
+            '@id2\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id4\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+        ]
+
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_paired_fn(self.muxed_sequences, metadata)
 
-        self.assert_demux_results(metadata.to_series(), obs_demuxed_art)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                          b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
@@ -334,13 +351,31 @@ class TestDemuxPaired(TestPluginBase):
             pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
 
+        exp = [
+            # sample a, fwd
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id1\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id3\nTGCATGCA\n+\nzzzzzzzz\n',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, fwd
+            '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id5\nTGCATGCA\n+\nzzzzzzzz\n'
+        ]
+
+
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_paired_fn(self.muxed_sequences,
                                      forward_barcodes=forward_barcodes,
                                      reverse_barcodes=reverse_barcodes)
 
-        self.assert_demux_results(forward_barcodes.to_series(),
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
         exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                          b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
@@ -350,6 +385,7 @@ class TestDemuxPaired(TestPluginBase):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [[]]
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
             'mixed-orientation/forward.fastq.gz')
@@ -368,7 +404,7 @@ class TestDemuxPaired(TestPluginBase):
                                      forward_barcodes=forward_barcodes,
                                      mixed_orientation=True)
 
-        self.assert_demux_results(forward_barcodes.to_series(),
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
         # Everything should match
         self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
