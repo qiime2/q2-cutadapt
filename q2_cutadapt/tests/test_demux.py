@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import gzip
+import itertools
 import os
 import pathlib
 import shutil
@@ -295,9 +296,13 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_mixed_orientation_success(self):
+        # sample_a and sample_b have reads in both fwd and rev directions.
+        # sample_c only has reads in the fwd direction.
+        # sample_d only has reads in the rev direction.
         forward_barcodes = CategoricalMetadataColumn(
-            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
-                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+            pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c',
+                                      'sample_d'], name='id')))
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
             'mixed-orientation/forward.fastq.gz')
@@ -316,9 +321,44 @@ class TestDemuxPaired(TestPluginBase):
                                      forward_barcodes=forward_barcodes,
                                      mixed_orientation=True)
 
+        # We want to be sure that the validation is 100%, not just `min`,
+        obs_demuxed_art.validate(level='max')
+        # checkpoint assertion for the above `validate` - nothing should fail
+        self.assertTrue(True)
+
         self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
-        # Everything should match
+
+        obs = obs_demuxed_art.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        obs = obs.sequences.iter_views(FastqGzFormat)
+        exp = [
+            # sample_a fwd
+            '@id1\nACGTACGT\n+\nyyyyyyyy\n' \
+            '@id3\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_a rev
+            '@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n' \
+            '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_b fwd
+            '@id4\nACGTACGT\n+\nyyyyyyyy\n' \
+            '@id2\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_b rev
+            '@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n' \
+            '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_c fwd
+            '@id5\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_c rev
+            '@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_d fwd
+            '@id6\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_d rev
+            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']
+
+        for (_, obs), exp in itertools.zip_longest(obs, exp):
+            with gzip.open(str(obs), 'rt') as fh:
+                obs = ''.join(fh.readlines())
+            self.assertEqual(obs, exp)
+
+        # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
 
     def test_di_mismatched_barcodes(self):
