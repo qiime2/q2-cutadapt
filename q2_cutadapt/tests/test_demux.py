@@ -296,9 +296,13 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_mixed_orientation_success(self):
+        # sample_a and sample_b have reads in both fwd and rev directions.
+        # sample_c only has reads in the fwd direction.
+        # sample_d only has reads in the rev direction.
         forward_barcodes = CategoricalMetadataColumn(
-            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
-                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+            pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c',
+                                      'sample_d'], name='id')))
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
             'mixed-orientation/forward.fastq.gz')
@@ -325,14 +329,18 @@ class TestDemuxPaired(TestPluginBase):
 
         obs = obs_demuxed_art.view(SingleLanePerSamplePairedEndFastqDirFmt)
         obs = obs.sequences.iter_views(FastqGzFormat)
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id1\n', 'GGGGTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
-                '@id3\n', 'GGGGTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
-               ['@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id4\n', 'TTTTTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
-                '@id2\n', 'TTTTTGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n']]
+        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n',
+                '@id3\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
+               ['@id1\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
+                '@id3\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
+               ['@id4\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n',
+                '@id2\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
+               ['@id4\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
+                '@id2\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
+               ['@id5\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
+               ['@id5\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
+               ['@id6\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
+               ['@id6\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n']]
 
         for (_, obs), exp in itertools.zip_longest(obs, exp):
             with gzip.open(str(obs), 'rt') as fh:
