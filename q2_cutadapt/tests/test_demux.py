@@ -389,33 +389,6 @@ class TestDemuxPaired(TestPluginBase):
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c',
                                       'sample_d'], name='id')))
 
-        mixed_orientation_sequences_f_fp = self.get_data_path(
-            'mixed-orientation/forward.fastq.gz')
-        mixed_orientation_sequences_r_fp = self.get_data_path(
-            'mixed-orientation/reverse.fastq.gz')
-
-        with tempfile.TemporaryDirectory() as temp:
-            shutil.copy(mixed_orientation_sequences_f_fp, temp)
-            shutil.copy(mixed_orientation_sequences_r_fp, temp)
-            mixed_orientation_sequences = Artifact.import_data(
-                'MultiplexedPairedEndBarcodeInSequence', temp)
-
-        with redirected_stdio(stderr=os.devnull):
-            obs_demuxed_art, obs_untrimmed_art = \
-                self.demux_paired_fn(mixed_orientation_sequences,
-                                     forward_barcodes=forward_barcodes,
-                                     mixed_orientation=True)
-
-        # We want to be sure that the validation is 100%, not just `min`,
-        obs_demuxed_art.validate(level='max')
-        # checkpoint assertion for the above `validate` - nothing should fail
-        self.assertTrue(True)
-
-        self.assert_demux_results(forward_barcodes.to_series(),
-                                  obs_demuxed_art)
-
-        obs = obs_demuxed_art.view(SingleLanePerSamplePairedEndFastqDirFmt)
-        obs = obs.sequences.iter_views(FastqGzFormat)
         exp = [
             # sample_a fwd
             '@id1\nACGTACGT\n+\nyyyyyyyy\n' \
@@ -438,10 +411,30 @@ class TestDemuxPaired(TestPluginBase):
             # sample_d rev
             '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']
 
-        for (_, obs), exp in itertools.zip_longest(obs, exp):
-            with gzip.open(str(obs), 'rt') as fh:
-                obs = ''.join(fh.readlines())
-            self.assertEqual(obs, exp)
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'mixed-orientation/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'mixed-orientation/reverse.fastq.gz')
+
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     mixed_orientation=True)
+
+        # We want to be sure that the validation is 100%, not just `min`,
+        obs_demuxed_art.validate(level='max')
+        # checkpoint assertion for the above `validate` - nothing should fail
+        self.assertTrue(True)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
 
         # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
