@@ -46,7 +46,7 @@ class TestDemuxSingle(TestPluginBase):
             self.assertTrue(sample_id in filename)
             self.assertTrue(barcode in filename)
             with gzip.open(str(fmt), 'rt') as fh:
-                obs = fh.readlines()
+                obs = ''.join(fh.readlines())
             self.assertEqual(exp, obs)
 
     def assert_untrimmed_results(self, exp, obs_untrimmed_art):
@@ -68,11 +68,15 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -87,12 +91,17 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                                      name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -118,6 +127,11 @@ class TestDemuxSingle(TestPluginBase):
         exp = [['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
                 '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
                 '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -136,11 +150,15 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAG', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -157,12 +175,17 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c',
                                       'sample_d'], name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -186,12 +209,17 @@ class TestDemuxSingle(TestPluginBase):
         muxed_sequences_fp = self.get_data_path('variable_length.fastq.gz')
         muxed_sequences = Artifact.import_data(
             'MultiplexedSingleEndBarcodeInSequence', muxed_sequences_fp)
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -204,11 +232,15 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -232,12 +264,17 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                       name='id')))
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n'],
-               ['@id6\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
+        ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
