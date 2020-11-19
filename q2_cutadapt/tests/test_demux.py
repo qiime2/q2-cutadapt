@@ -333,25 +333,25 @@ class TestDemuxPaired(TestPluginBase):
         obs = obs.sequences.iter_views(FastqGzFormat)
         exp = [
             # sample_a fwd
-            ['@id1\nACGTACGT\n+\nyyyyyyyy\n',
-             '@id3\nACGTACGT\n+\nyyyyyyyy\n'],
+            '@id1\nACGTACGT\n+\nyyyyyyyy\n' \
+            '@id3\nACGTACGT\n+\nyyyyyyyy\n',
             # sample_a rev
-            ['@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
-             '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            '@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n' \
+            '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
             # sample_b fwd
-            ['@id4\nACGTACGT\n+\nyyyyyyyy\n',
-             '@id2\nACGTACGT\n+\nyyyyyyyy\n'],
+            '@id4\nACGTACGT\n+\nyyyyyyyy\n' \
+            '@id2\nACGTACGT\n+\nyyyyyyyy\n',
             # sample_b rev
-            ['@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
-             '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            '@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n' \
+            '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
             # sample_c fwd
-            ['@id5\nACGTACGT\n+\nyyyyyyyy\n'],
+            '@id5\nACGTACGT\n+\nyyyyyyyy\n',
             # sample_c rev
-            ['@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            '@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
             # sample_d fwd
-            ['@id6\nACGTACGT\n+\nyyyyyyyy\n'],
+            '@id6\nACGTACGT\n+\nyyyyyyyy\n',
             # sample_d rev
-            ['@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']]
+            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']
 
         for (_, obs), exp in itertools.zip_longest(obs, exp):
             with gzip.open(str(obs), 'rt') as fh:
