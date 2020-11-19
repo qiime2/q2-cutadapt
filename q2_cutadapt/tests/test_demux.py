@@ -385,7 +385,6 @@ class TestDemuxPaired(TestPluginBase):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-        exp = [[]]
 
         mixed_orientation_sequences_f_fp = self.get_data_path(
             'mixed-orientation/forward.fastq.gz')
@@ -404,7 +403,7 @@ class TestDemuxPaired(TestPluginBase):
                                      forward_barcodes=forward_barcodes,
                                      mixed_orientation=True)
 
-        self.assert_demux_results(forward_barcodes.to_series(), exp,
+        self.assert_demux_results(forward_barcodes.to_series(),
                                   obs_demuxed_art)
         # Everything should match
         self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
