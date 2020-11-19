@@ -321,7 +321,9 @@ class TestDemuxPaired(TestPluginBase):
                                      forward_barcodes=forward_barcodes,
                                      mixed_orientation=True)
 
+        # We want to be sure that the validation is 100%, not just `min`,
         obs_demuxed_art.validate(level='max')
+        # checkpoint assertion for the above `validate` - nothing should fail
         self.assertTrue(True)
 
         self.assert_demux_results(forward_barcodes.to_series(),
@@ -329,22 +331,31 @@ class TestDemuxPaired(TestPluginBase):
 
         obs = obs_demuxed_art.view(SingleLanePerSamplePairedEndFastqDirFmt)
         obs = obs.sequences.iter_views(FastqGzFormat)
-        exp = [['@id1\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n',
-                '@id3\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
-               ['@id1\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
-                '@id3\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
-               ['@id4\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n',
-                '@id2\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
-               ['@id4\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n',
-                '@id2\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
-               ['@id5\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
-               ['@id5\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n'],
-               ['@id6\n', 'ACGTACGT\n', '+\n', 'yyyyyyyy\n'],
-               ['@id6\n', 'TGCATGCATGCA\n', '+\n', 'zzzzzzzzzzzz\n']]
+        exp = [
+            # sample_a fwd
+            ['@id1\nACGTACGT\n+\nyyyyyyyy\n',
+             '@id3\nACGTACGT\n+\nyyyyyyyy\n'],
+            # sample_a rev
+            ['@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+             '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            # sample_b fwd
+            ['@id4\nACGTACGT\n+\nyyyyyyyy\n',
+             '@id2\nACGTACGT\n+\nyyyyyyyy\n'],
+            # sample_b rev
+            ['@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+             '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            # sample_c fwd
+            ['@id5\nACGTACGT\n+\nyyyyyyyy\n'],
+            # sample_c rev
+            ['@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'],
+            # sample_d fwd
+            ['@id6\nACGTACGT\n+\nyyyyyyyy\n'],
+            # sample_d rev
+            ['@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']]
 
         for (_, obs), exp in itertools.zip_longest(obs, exp):
             with gzip.open(str(obs), 'rt') as fh:
-                obs = fh.readlines()
+                obs = ''.join(fh.readlines())
             self.assertEqual(obs, exp)
 
         # Everything should match, so untrimmed should be empty
