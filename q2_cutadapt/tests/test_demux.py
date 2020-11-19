@@ -368,7 +368,6 @@ class TestDemuxPaired(TestPluginBase):
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n'
         ]
 
-
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_paired_fn(self.muxed_sequences,
