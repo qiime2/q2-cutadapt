@@ -457,7 +457,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                          obs[11])
 
     def test_rename_files_single(self):
-        for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
+        for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
             shutil.copy(self.fastq_fp,
                         str(self.per_sample_dir_fmt.path / pathlib.Path(fn)))
 
@@ -474,7 +474,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
         barcode_series = pd.Series(['A', 'G', 'C'],
                                    index=['sample_a', 'sample_b', 'sample_c'])
 
-        for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
+        for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
             shutil.copy(self.fastq_fp,
                         str(self.per_sample_dir_fmt.path / pathlib.Path(fn)))
 
