@@ -85,13 +85,11 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
                                '%s.%d.fastq.gz' % (sample_id,
                                                    read_direction))
 
-            # TODO: remove this outer guard when we upgrade to cutadapt 3
-            if os.path.isfile(src):
-                if out_fp.exists():
-                    _merge_files(src, str(out_fp))
-                    os.remove(src)
-                else:
-                    os.rename(src, str(out_fp))
+            if out_fp.exists():
+                _merge_files(src, str(out_fp))
+                os.remove(src)
+            else:
+                os.rename(src, str(out_fp))
 
 
 def _merge_files(src, dst):
