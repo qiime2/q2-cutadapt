@@ -19,7 +19,7 @@ requirements:
 
   run:
     - python {{ python }}
-    - cutadapt
+    - cutadapt >=2,<3
     - pigz
     - pandas
     - numpy
