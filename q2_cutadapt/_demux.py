@@ -117,13 +117,34 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
+def _check_if_empty(fp):
+    # True: empty, False: not empty, None: file doesn't exist
+    if fp is None:
+        return None
+
+    with gzip.open(fp, 'rb') as fh:
+        peek = fh.peek(1)
+        return len(peek) == 0
+
+
 def _clean_empty(seqs):
     """Clean up empty files output by Cutadapt"""
-    for _, fastqgz in seqs.sequences.iter_views(FastqGzFormat):
-        with gzip.open(str(fastqgz), 'rb') as f:
-            data = f.read(1)
-        if len(data) == 0:
-            (seqs.path / fastqgz.path).unlink()
+    for _, fwd_fp, rev_fp in seqs.manifest.itertuples():
+        fwd_is_empty = _check_if_empty(fwd_fp)
+        rev_is_empty = _check_if_empty(rev_fp)
+
+        # case 0: both files exist and are empty
+        if fwd_is_empty and rev_is_empty:
+            os.remove(fwd_fp)
+            os.remove(rev_fp)
+        # case 1: only the fwd file exists, and is empty
+        elif fwd_is_empty and rev_is_empty is None:
+            os.remove(fwd_fp)
+        # case 2: only the rev file exists, and is empty
+        elif fwd_is_empty is None and rev_is_empty:
+            os.remove(rev_fp)
+        # all other cases represent situations where the files
+        # shouldn't be removed
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
