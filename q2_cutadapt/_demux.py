@@ -85,11 +85,14 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
                                '%s.%d.fastq.gz' % (sample_id,
                                                    read_direction))
 
-            if out_fp.exists():
-                _merge_files(src, str(out_fp))
-                os.remove(src)
-            else:
-                os.rename(src, str(out_fp))
+            # The isfile check is effectively performing an INNER JOIN.
+            # The check is necessary when extra samples are in the barcode map.
+            if os.path.isfile(src):
+                if out_fp.exists():
+                    _merge_files(src, str(out_fp))
+                    os.remove(src)
+                else:
+                    os.rename(src, str(out_fp))
 
 
 def _merge_files(src, dst):
