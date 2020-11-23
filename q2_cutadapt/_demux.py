@@ -143,11 +143,6 @@ def _clean_empty(seqs):
         # case 1: only the fwd file exists, and is empty
         elif fwd_is_empty and rev_is_empty is None:
             os.remove(fwd_fp)
-        # case 2: only the rev file exists, and is empty
-        elif fwd_is_empty is None and rev_is_empty:
-            os.remove(rev_fp)
-        # all other cases represent situations where the files
-        # shouldn't be removed
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
