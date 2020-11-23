@@ -111,26 +111,46 @@ class TestDemuxSingle(TestPluginBase):
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
+    # NOTE: this test used to check for an exception because it was
+    # possible to generate a completely empty output dir with no fastq.gz
+    # files in it. As of cutadapt 3 this is no longer possible, because output
+    # files are generated for every sample (and we must specify at least one
+    # sample in order for the barcodes to be valid QIIME 2 Metadata). Rather
+    # than remove the test, we will retool it here.
     def test_none_matched(self):
         metadata = CategoricalMetadataColumn(
             pd.Series(['TTTT'], name='Barcode',
                       index=pd.Index(['sample_d'], name='id')))
 
         with redirected_stdio(stderr=os.devnull):
-            with self.assertRaisesRegex(ValueError, 'demultiplexed'):
+            obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
+
+        self.assert_demux_results(metadata.to_series(), [''], obs_demuxed_art)
+
+        self.assert_untrimmed_results(b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      b'@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      b'@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      b'@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      b'@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
 
     def test_error_tolerance_filtering(self):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAG', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        # TODO: what happened here?
         exp = [['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
                 '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
                 '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
         exp = [
+            # sample a
+            '',
+            # sample b
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
         ]
 
         with redirected_stdio(stderr=os.devnull):
@@ -138,7 +158,8 @@ class TestDemuxSingle(TestPluginBase):
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         # sample_a is dropped because of a substitution error (AAAA vs AAAG)
-        exp_samples_and_barcodes = pd.Series(['CCCC'], index=['sample_b'])
+        exp_samples_and_barcodes = pd.Series(['AAAG', 'CCCC'],
+                                             index=['sample_a', 'sample_b'])
         self.assert_demux_results(exp_samples_and_barcodes, exp,
                                   obs_demuxed_art)
         self.assert_untrimmed_results(b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
@@ -184,18 +205,18 @@ class TestDemuxSingle(TestPluginBase):
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
             # sample c
-            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample d
+            '',
         ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        # TTTT/sample_d shouldn't be in the demuxed results, because there
-        # were no reads with that barcode present
-        exp_samples_and_barcodes = pd.Series(['AAAA', 'CCCC', 'GGGG'],
+        exp_samples_and_barcodes = pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'],
                                              index=['sample_a', 'sample_b',
-                                                    'sample_c'])
+                                                    'sample_c', 'sample_d'])
         self.assert_demux_results(exp_samples_and_barcodes, exp,
                                   obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
@@ -293,16 +314,27 @@ class TestDemuxSingle(TestPluginBase):
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                       name='id')))
 
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c
+            ''
+        ]
+
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         obs = obs_demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
 
-        (obs_f1, _), (obs_f2, _) = obs.sequences.iter_views(FastqGzFormat)
-
-        self.assertEqual('sample_a_AAAA_L001_R1_001.fastq.gz', str(obs_f1))
-        self.assertEqual('sample_b_CCCC_L001_R1_001.fastq.gz', str(obs_f2))
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        # obs_untrimmed should be empty, since everything matched
+        self.assert_untrimmed_results(b'', obs_untrimmed_art)
 
 
 class TestDemuxPaired(TestPluginBase):
@@ -572,7 +604,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                          obs[11])
 
     def test_rename_files_single(self):
-        for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
+        for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
             shutil.copy(self.fastq_fp,
                         str(self.per_sample_dir_fmt.path / pathlib.Path(fn)))
 
@@ -580,19 +612,16 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                       self.barcode_series)
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
-        counter = 0
         for fn, (sample_id, barcode) in zip(seqs,
                                             self.barcode_series.iteritems()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
-            counter += 1
-        self.assertEqual(counter, 2)
 
     def test_rename_files_extra_samples_in_barcode_map(self):
         barcode_series = pd.Series(['A', 'G', 'C'],
                                    index=['sample_a', 'sample_b', 'sample_c'])
 
-        for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
+        for fn in ['sample_a.fastq.gz', 'sample_b.fastq.gz']:
             shutil.copy(self.fastq_fp,
                         str(self.per_sample_dir_fmt.path / pathlib.Path(fn)))
 
@@ -600,12 +629,9 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                       barcode_series)
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
-        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, barcode_series.iteritems()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
-            counter += 1
-        self.assertEqual(counter, 2)
 
     def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)
@@ -689,12 +715,9 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         exp = [('sample_a', 'A'), ('sample_a', 'A'),
                ('sample_b', 'G'), ('sample_b', 'G')]
-        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, exp):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
-            counter += 1
-        self.assertEqual(counter, 4)
 
     def test_rename_files_extra_samples_in_barcode_map(self):
         barcode_series = pd.Series(['A', 'G', 'C'],
@@ -711,12 +734,9 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         exp = [('sample_a', 'A'), ('sample_a', 'A'),
                ('sample_b', 'G'), ('sample_b', 'G')]
-        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, exp):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
-            counter += 1
-        self.assertEqual(counter, 4)
 
     def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)
