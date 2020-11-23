@@ -330,8 +330,6 @@ class TestDemuxSingle(TestPluginBase):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        obs = obs_demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
-
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results(b'', obs_untrimmed_art)
