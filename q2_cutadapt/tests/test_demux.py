@@ -53,8 +53,9 @@ class TestDemuxSingle(TestPluginBase):
         obs_untrimmed = obs_untrimmed_art.view(
             MultiplexedSingleEndBarcodeInSequenceDirFmt)
         obs_untrimmed = obs_untrimmed.file.view(FastqGzFormat)
-        obs_untrimmed = gzip.decompress(obs_untrimmed.path.read_bytes())
-        self.assertEqual(exp, obs_untrimmed)
+        with gzip.open(str(obs_untrimmed), 'rt') as fh:
+            obs = ''.join(fh.readlines())
+        self.assertEqual(exp, obs)
 
     def setUp(self):
         super().setUp()
@@ -83,7 +84,7 @@ class TestDemuxSingle(TestPluginBase):
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+        self.assert_untrimmed_results('@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
     def test_all_matched(self):
@@ -109,7 +110,7 @@ class TestDemuxSingle(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
-        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+        self.assert_untrimmed_results('', obs_untrimmed_art)
 
     # NOTE: this test used to check for an exception because it was
     # possible to generate a completely empty output dir with no fastq.gz
@@ -128,12 +129,12 @@ class TestDemuxSingle(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), [''], obs_demuxed_art)
 
-        self.assert_untrimmed_results(b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+        self.assert_untrimmed_results('@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
     def test_error_tolerance_filtering(self):
@@ -162,9 +163,9 @@ class TestDemuxSingle(TestPluginBase):
                                              index=['sample_a', 'sample_b'])
         self.assert_demux_results(exp_samples_and_barcodes, exp,
                                   obs_demuxed_art)
-        self.assert_untrimmed_results(b'@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
-                                      b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+        self.assert_untrimmed_results('@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
     def test_error_tolerance_high_enough_to_prevent_filtering(self):
@@ -188,7 +189,7 @@ class TestDemuxSingle(TestPluginBase):
 
         # This test should yield the same results as test_typical, above
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+        self.assert_untrimmed_results('@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
     def test_extra_barcode_in_metadata(self):
@@ -220,7 +221,7 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(exp_samples_and_barcodes, exp,
                                   obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
-        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+        self.assert_untrimmed_results('', obs_untrimmed_art)
 
     def test_variable_length_barcodes(self):
         metadata = CategoricalMetadataColumn(
@@ -247,7 +248,7 @@ class TestDemuxSingle(TestPluginBase):
                 self.demux_single_fn(muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+        self.assert_untrimmed_results('', obs_untrimmed_art)
 
     def test_batch_size(self):
         metadata = CategoricalMetadataColumn(
@@ -269,7 +270,7 @@ class TestDemuxSingle(TestPluginBase):
                                      batch_size=1)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        self.assert_untrimmed_results(b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+        self.assert_untrimmed_results('@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
     def test_invalid_batch_size(self):
@@ -304,7 +305,7 @@ class TestDemuxSingle(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
-        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+        self.assert_untrimmed_results('', obs_untrimmed_art)
 
     def test_min_length(self):
         metadata = CategoricalMetadataColumn(
@@ -332,7 +333,7 @@ class TestDemuxSingle(TestPluginBase):
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         # obs_untrimmed should be empty, since everything matched
-        self.assert_untrimmed_results(b'', obs_untrimmed_art)
+        self.assert_untrimmed_results('', obs_untrimmed_art)
 
 
 class TestDemuxPaired(TestPluginBase):
@@ -358,10 +359,12 @@ class TestDemuxPaired(TestPluginBase):
         obs_untrimmed = obs_untrimmed_art.view(
             MultiplexedPairedEndBarcodeInSequenceDirFmt)
         obs_untrimmed_f = obs_untrimmed.forward_sequences.view(FastqGzFormat)
-        obs_untrimmed_f = gzip.decompress(obs_untrimmed_f.path.read_bytes())
+        with gzip.open(str(obs_untrimmed_f), 'rt') as fh:
+            obs_untrimmed_f = ''.join(fh.readlines())
         self.assertEqual(exp[0], obs_untrimmed_f)
         obs_untrimmed_r = obs_untrimmed.reverse_sequences.view(FastqGzFormat)
-        obs_untrimmed_r = gzip.decompress(obs_untrimmed_r.path.read_bytes())
+        with gzip.open(str(obs_untrimmed_r), 'rt') as fh:
+            obs_untrimmed_r = ''.join(fh.readlines())
         self.assertEqual(exp[1], obs_untrimmed_r)
 
     def setUp(self):
@@ -406,8 +409,8 @@ class TestDemuxPaired(TestPluginBase):
                 self.demux_paired_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
+        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_di_typical(self):
@@ -443,8 +446,8 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
-        exp_untrimmed = [b'@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         b'@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
+        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_mixed_orientation_success(self):
@@ -504,7 +507,7 @@ class TestDemuxPaired(TestPluginBase):
                                   obs_demuxed_art)
 
         # Everything should match, so untrimmed should be empty
-        self.assert_untrimmed_results([b'', b''], obs_untrimmed_art)
+        self.assert_untrimmed_results(['', ''], obs_untrimmed_art)
 
     def test_di_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
