@@ -465,10 +465,13 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                       self.barcode_series)
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
+        counter = 0
         for fn, (sample_id, barcode) in zip(seqs,
                                             self.barcode_series.iteritems()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
+            counter += 1
+        self.assertEqual(counter, 2)
 
     def test_rename_files_extra_samples_in_barcode_map(self):
         barcode_series = pd.Series(['A', 'G', 'C'],
@@ -482,9 +485,12 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                       barcode_series)
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
+        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, barcode_series.iteritems()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
+            counter += 1
+        self.assertEqual(counter, 2)
 
     def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)
@@ -568,9 +574,12 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         exp = [('sample_a', 'A'), ('sample_a', 'A'),
                ('sample_b', 'G'), ('sample_b', 'G')]
+        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, exp):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
+            counter += 1
+        self.assertEqual(counter, 4)
 
     def test_rename_files_extra_samples_in_barcode_map(self):
         barcode_series = pd.Series(['A', 'G', 'C'],
@@ -587,9 +596,12 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         exp = [('sample_a', 'A'), ('sample_a', 'A'),
                ('sample_b', 'G'), ('sample_b', 'G')]
+        counter = 0
         for fn, (sample_id, barcode) in zip(seqs, exp):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
+            counter += 1
+        self.assertEqual(counter, 4)
 
     def test_write_empty_fastq_to_mux_barcode_in_seq_fmt(self):
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(self.untrimmed_dir_fmt)
