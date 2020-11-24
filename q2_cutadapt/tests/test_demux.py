@@ -76,8 +76,7 @@ class TestDemuxSingle(TestPluginBase):
             # sample b
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -101,15 +100,13 @@ class TestDemuxSingle(TestPluginBase):
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
             # sample c
-            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
     # NOTE: this test used to check for an exception because it was
@@ -128,7 +125,6 @@ class TestDemuxSingle(TestPluginBase):
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), [''], obs_demuxed_art)
-
         self.assert_untrimmed_results('@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
                                       '@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
                                       '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
@@ -141,24 +137,18 @@ class TestDemuxSingle(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAG', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-        # TODO: what happened here?
-        exp = [['@id2\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id4\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n',
-                '@id5\n', 'ACGTACGT\n', '+\n', 'zzzzzzzz\n']]
         exp = [
-            # sample a
+            # sample a has no reads (bc we misspelled the barcode)
             '',
             # sample b
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-        ]
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        # sample_a is dropped because of a substitution error (AAAA vs AAAG)
         exp_samples_and_barcodes = pd.Series(['AAAG', 'CCCC'],
                                              index=['sample_a', 'sample_b'])
         self.assert_demux_results(exp_samples_and_barcodes, exp,
@@ -179,8 +169,7 @@ class TestDemuxSingle(TestPluginBase):
             # sample b
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -207,9 +196,8 @@ class TestDemuxSingle(TestPluginBase):
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
             # sample c
             '@id6\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample d
-            '',
-        ]
+            # sample d is empty bc no reads matched the barcode TTTT
+            '', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -220,7 +208,6 @@ class TestDemuxSingle(TestPluginBase):
                                                     'sample_c', 'sample_d'])
         self.assert_demux_results(exp_samples_and_barcodes, exp,
                                   obs_demuxed_art)
-        # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
     def test_variable_length_barcodes(self):
@@ -240,8 +227,7 @@ class TestDemuxSingle(TestPluginBase):
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
             # sample c
-            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -261,14 +247,15 @@ class TestDemuxSingle(TestPluginBase):
             # sample b
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata,
                                      batch_size=1)
 
+        # This test should yield the same results as test_typical, above,
+        # the fact that we are batching shouldn't impact the final results
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results('@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
@@ -295,8 +282,7 @@ class TestDemuxSingle(TestPluginBase):
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
             # sample c
-            '@id6\nACGTACGT\n+\nzzzzzzzz\n'
-        ]
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -304,7 +290,6 @@ class TestDemuxSingle(TestPluginBase):
                                      batch_size=2)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
     def test_min_length(self):
@@ -314,7 +299,6 @@ class TestDemuxSingle(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGGACGTACGT'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
                       name='id')))
-
         exp = [
             # sample a
             '@id1\nACGTACGT\n+\nzzzzzzzz\n'
@@ -323,16 +307,15 @@ class TestDemuxSingle(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample c
-            ''
-        ]
+            # sample c is empty because we the barcode matched the entire
+            # read, which removed everything.
+            '', ]
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        # obs_untrimmed should be empty, since everything matched
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
 
@@ -358,10 +341,14 @@ class TestDemuxPaired(TestPluginBase):
     def assert_untrimmed_results(self, exp, obs_untrimmed_art):
         obs_untrimmed = obs_untrimmed_art.view(
             MultiplexedPairedEndBarcodeInSequenceDirFmt)
+
+        # first check the fwd reads
         obs_untrimmed_f = obs_untrimmed.forward_sequences.view(FastqGzFormat)
         with gzip.open(str(obs_untrimmed_f), 'rt') as fh:
             obs_untrimmed_f = ''.join(fh.readlines())
         self.assertEqual(exp[0], obs_untrimmed_f)
+
+        # next check the rev reads
         obs_untrimmed_r = obs_untrimmed.reverse_sequences.view(FastqGzFormat)
         with gzip.open(str(obs_untrimmed_r), 'rt') as fh:
             obs_untrimmed_r = ''.join(fh.readlines())
@@ -386,7 +373,6 @@ class TestDemuxPaired(TestPluginBase):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-
         exp = [
             # sample a, fwd
             '@id1\nACGTACGT\n+\nzzzzzzzz\n'
@@ -401,16 +387,15 @@ class TestDemuxPaired(TestPluginBase):
             # sample b, fwd
             '@id2\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
             '@id4\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
-            '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
-        ]
+            '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n', ]
+        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_paired_fn(self.muxed_sequences, metadata)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_di_typical(self):
@@ -420,7 +405,6 @@ class TestDemuxPaired(TestPluginBase):
         reverse_barcodes = CategoricalMetadataColumn(
             pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
-
         exp = [
             # sample a, fwd
             '@id1\nACGTACGT\n+\nzzzzzzzz\n'
@@ -435,8 +419,9 @@ class TestDemuxPaired(TestPluginBase):
             # sample a, fwd
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
-            '@id5\nTGCATGCA\n+\nzzzzzzzz\n'
-        ]
+            '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
+        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
@@ -446,8 +431,6 @@ class TestDemuxPaired(TestPluginBase):
 
         self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
-        exp_untrimmed = ['@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
-                         '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n']
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
     def test_mixed_orientation_success(self):
@@ -458,7 +441,21 @@ class TestDemuxPaired(TestPluginBase):
             pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c',
                                       'sample_d'], name='id')))
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'mixed-orientation/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'mixed-orientation/reverse.fastq.gz')
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
 
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     mixed_orientation=True)
         exp = [
             # sample_a fwd
             '@id1\nACGTACGT\n+\nyyyyyyyy\n' \
@@ -479,24 +476,7 @@ class TestDemuxPaired(TestPluginBase):
             # sample_d fwd
             '@id6\nACGTACGT\n+\nyyyyyyyy\n',
             # sample_d rev
-            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n']
-
-        mixed_orientation_sequences_f_fp = self.get_data_path(
-            'mixed-orientation/forward.fastq.gz')
-        mixed_orientation_sequences_r_fp = self.get_data_path(
-            'mixed-orientation/reverse.fastq.gz')
-
-        with tempfile.TemporaryDirectory() as temp:
-            shutil.copy(mixed_orientation_sequences_f_fp, temp)
-            shutil.copy(mixed_orientation_sequences_r_fp, temp)
-            mixed_orientation_sequences = Artifact.import_data(
-                'MultiplexedPairedEndBarcodeInSequence', temp)
-
-        with redirected_stdio(stderr=os.devnull):
-            obs_demuxed_art, obs_untrimmed_art = \
-                self.demux_paired_fn(mixed_orientation_sequences,
-                                     forward_barcodes=forward_barcodes,
-                                     mixed_orientation=True)
+            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n', ]
 
         # We want to be sure that the validation is 100%, not just `min`,
         obs_demuxed_art.validate(level='max')
