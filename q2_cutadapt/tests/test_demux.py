@@ -149,9 +149,7 @@ class TestDemuxSingle(TestPluginBase):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata)
 
-        exp_samples_and_barcodes = pd.Series(['AAAG', 'CCCC'],
-                                             index=['sample_a', 'sample_b'])
-        self.assert_demux_results(exp_samples_and_barcodes, exp,
+        self.assert_demux_results(metadata.to_series(), exp,
                                   obs_demuxed_art)
         self.assert_untrimmed_results('@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
                                       '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
@@ -307,7 +305,7 @@ class TestDemuxSingle(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample c is empty because we the barcode matched the entire
+            # sample c is empty because the barcode matched the entire
             # read, which removed everything.
             '', ]
 
