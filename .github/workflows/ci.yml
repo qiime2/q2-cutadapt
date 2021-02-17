@@ -47,4 +47,4 @@ jobs:
       with:
         package-name: q2-cutadapt
         build-target: staging
-        additional-tests: py.test --pyargs q2_cutadapt
+        additional-tests: py.test --pyargs q2_cutadapt --capture=tee-sys
