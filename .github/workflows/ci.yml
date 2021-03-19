@@ -52,3 +52,4 @@ jobs:
         package-name: q2-cutadapt
         build-target: staging
         additional-tests: py.test --pyargs q2_cutadapt
+        library-token: ${{ secrets.LIBRARY_TOKEN }}
