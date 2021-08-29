@@ -23,10 +23,13 @@ requirements:
     - pigz
     - pandas
     - numpy
-    - qiime2 {{ release }}.*
-    - q2-types {{ release }}.*
+    - qiime2 {{ qiime2 }}
+    - q2-types {{ q2_types }}
 
 test:
+  requires:
+    - pytest
+
   imports:
     - q2_cutadapt
     - qiime2.plugins.cutadapt
