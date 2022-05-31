@@ -6,6 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+from enum import Enum
+from random import choices
 from qiime2.plugin import (
     Plugin,
     Citations,
@@ -17,6 +19,7 @@ from qiime2.plugin import (
     List,
     Str,
     Bool,
+    Choices,
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -64,6 +67,10 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'max_expected_errors': Float % Range(0, None),
+        'quality_cutoff_3end': Int % Range(0, None), 
+        'quality_cutoff_5end': Int % Range(0, None),
+        'quality_base': Int % Choices([33, 64]),
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -109,6 +116,10 @@ plugin.methods.register_function(
                           'because that value produces empty sequence '
                           'records.',
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
+        'max_expected_errors': 'Discard reads that exceed maximum expected erroneous nucleotides.',
+        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality lower than threshold from 3 prime end.',
+        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality lower than threshold from 5 prime end.',
+        'quality_base': 'How the Phred score is encoded (33 or 64).',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -143,6 +154,10 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'max_expected_errors': Float % Range(0, None),
+        'quality_cutoff_3end': Int % Range(0, None), 
+        'quality_cutoff_5end': Int % Range(0, None),
+        'quality_base': Int % Choices([33, 64]),
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -210,6 +225,10 @@ plugin.methods.register_function(
                           'because that value produces empty sequence '
                           'records.',
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
+        'max_expected_errors': 'Discard reads that exceed maximum expected erroneous nucleotides.',
+        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality lower than threshold from 3 prime end.',
+        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality lower than threshold from 5 prime end.',
+        'quality_base': 'How the Phred score is encoded (33 or 64).',
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
