@@ -6,8 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from enum import Enum
-from random import choices
 from qiime2.plugin import (
     Plugin,
     Citations,
@@ -70,7 +68,7 @@ plugin.methods.register_function(
         'max_expected_errors': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None), 
         'quality_cutoff_5end': Int % Range(0, None),
-        'quality_base': Int % Choices([33, 64]),
+        'quality_base': Int % Range(0, None),
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -157,7 +155,7 @@ plugin.methods.register_function(
         'max_expected_errors': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None), 
         'quality_cutoff_5end': Int % Range(0, None),
-        'quality_base': Int % Choices([33, 64]),
+        'quality_base': Int % Range(0, None),
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),

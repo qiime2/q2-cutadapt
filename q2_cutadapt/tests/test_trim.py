@@ -77,6 +77,7 @@ class TestTrimSingle(TestPluginBase):
                 for record in itertools.zip_longest(*[obs_fh] * 4):
                     self.assertTrue(record[0] != empty_seq_id)
 
+    #def test_m
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -174,7 +175,11 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
-                                      discard_untrimmed=True)
+                                      discard_untrimmed=True,
+                                      max_expected_errors=1,
+                                      quality_cutoff_3end=20, 
+                                      quality_cutoff_5end=20,
+                                      quality_base=33)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -191,6 +196,11 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
+            self.assertTrue('--max-expected-errors 1' in obs)
+            self.assertTrue('-q 20,20' in obs)
+            self.assertTrue('--quality-base 33' in obs)
+
+
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -254,7 +264,11 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
-                                      discard_untrimmed=True)
+                                      discard_untrimmed=True,
+                                      max_expected_errors=1,
+                                      quality_cutoff_3end=20, 
+                                      quality_cutoff_5end=20,
+                                      quality_base=33)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -276,6 +290,9 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
+            self.assertTrue('--max-expected-errors 1' in obs)
+            self.assertTrue('-q 20,20' in obs)
+            self.assertTrue('--quality-base 33' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
