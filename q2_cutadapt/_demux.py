@@ -38,7 +38,7 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
-                         untrimmed_dir_fmt, error_rate, minimum_length):
+                         untrimmed_dir_fmt, error_rate, minimum_length,cores):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
@@ -48,6 +48,7 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
            '--untrimmed-output',
            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
+           '-j',str(cores),
            ]
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
         # PAIRED-END
@@ -120,7 +121,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-           error_tolerance, mux_fmt, batch_size, minimum_length):
+           error_tolerance, mux_fmt, batch_size, minimum_length,cores):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -173,7 +174,7 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
         cmd = _build_demux_command(previous_untrimmed, open_fhs,
                                    per_sample_sequences,
                                    current_untrimmed, error_tolerance,
-                                   minimum_length)
+                                   minimum_length,cores)
         run_command(cmd)
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
@@ -190,6 +191,7 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.CategoricalMetadataColumn,
+                 cores: int = 1,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
                  minimum_length: int = 1) -> \
@@ -200,12 +202,13 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
     untrimmed = _demux(
         seqs, per_sample_sequences, barcodes, None, error_rate, mux_fmt,
-        batch_size, minimum_length)
+        batch_size, minimum_length,cores)
 
     return per_sample_sequences, untrimmed
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
+                 cores: int = 1,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
@@ -237,6 +240,6 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         untrimmed = _demux(
             remaining_seqs, per_sample_sequences, forward_barcodes,
             reverse_barcodes, error_rate, mux_fmt, batch_size,
-            minimum_length)
+            minimum_length,cores)
 
     return per_sample_sequences, untrimmed

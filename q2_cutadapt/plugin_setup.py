@@ -233,6 +233,7 @@ plugin.methods.register_function(
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
+        'cores': Int % Range(1, None),
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -242,6 +243,7 @@ plugin.methods.register_function(
         'seqs': 'The single-end sequences to be demultiplexed.',
     },
     parameter_descriptions={
+        'cores': 'Number of CPU cores to use.',
         'barcodes': 'The sample metadata column listing the per-sample '
                     'barcodes.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
@@ -283,6 +285,7 @@ plugin.methods.register_function(
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
         'mixed_orientation': Bool,
+        'cores': Int % Range(1, None),
     },
     outputs=[
         ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -292,6 +295,7 @@ plugin.methods.register_function(
         'seqs': 'The paired-end sequences to be demultiplexed.',
     },
     parameter_descriptions={
+        'cores': 'Number of CPU cores to use.',
         'forward_barcodes': 'The sample metadata column listing the '
                             'per-sample barcodes for the forward reads.',
         'reverse_barcodes': 'The sample metadata column listing the '
