@@ -121,7 +121,7 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-           error_tolerance, mux_fmt, batch_size, minimum_length,cores):
+           error_tolerance, mux_fmt, batch_size, minimum_length, cores):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -191,12 +191,12 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
 
 def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  barcodes: qiime2.CategoricalMetadataColumn,
-                 cores: int = 1,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
-                 minimum_length: int = 1) -> \
-                    (CasavaOneEightSingleLanePerSampleDirFmt,
-                     MultiplexedSingleEndBarcodeInSequenceDirFmt):
+                 minimum_length: int = 1,
+                 cores: int = 1) -> \
+                 (CasavaOneEightSingleLanePerSampleDirFmt,
+                  MultiplexedSingleEndBarcodeInSequenceDirFmt):
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
 
@@ -208,15 +208,16 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
 
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
-                 cores: int = 1,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
                  minimum_length: int = 1,
-                 mixed_orientation: bool = False) -> \
+                 mixed_orientation: bool = False,
+                 cores: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
-                     MultiplexedPairedEndBarcodeInSequenceDirFmt):
+                     MultiplexedPairedEndBarcodeInSequenceDirFmt,
+                 ):
     if mixed_orientation and reverse_barcodes is not None:
         raise ValueError('Dual-indexed barcodes for mixed orientation '
                          'reads are not supported.')
@@ -226,7 +227,7 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
 
     untrimmed = _demux(
         seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-        error_rate, mux_fmt, batch_size, minimum_length)
+        error_rate, mux_fmt, batch_size, minimum_length,cores)
 
     if mixed_orientation:
         fwd = untrimmed.forward_sequences.view(FastqGzFormat)
