@@ -7,9 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import find_packages, setup
-
 import versioneer
-
 
 setup(
     name='q2-cutadapt',

@@ -17,7 +17,6 @@ from qiime2.plugin import (
     List,
     Str,
     Bool,
-    Choices,
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -32,7 +31,6 @@ from q2_types.per_sample_sequences import (
 import q2_cutadapt
 import q2_cutadapt._demux
 import q2_cutadapt._trim
-
 
 plugin = Plugin(
     name='cutadapt',
@@ -66,7 +64,7 @@ plugin.methods.register_function(
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
-        'quality_cutoff_3end': Int % Range(0, None), 
+        'quality_cutoff_3end': Int % Range(0, None),
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
     },
@@ -114,9 +112,12 @@ plugin.methods.register_function(
                           'because that value produces empty sequence '
                           'records.',
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
-        'max_expected_errors': 'Discard reads that exceed maximum expected erroneous nucleotides.',
-        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality lower than threshold from 3 prime end.',
-        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality lower than threshold from 5 prime end.',
+        'max_expected_errors': 'Discard reads that exceed maximum expected '
+                               'erroneous nucleotides.',
+        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality '
+                               'lower than threshold from 3 prime end.',
+        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality '
+                               'lower than threshold from 5 prime end.',
         'quality_base': 'How the Phred score is encoded (33 or 64).',
     },
     output_descriptions={
@@ -153,7 +154,7 @@ plugin.methods.register_function(
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
-        'quality_cutoff_3end': Int % Range(0, None), 
+        'quality_cutoff_3end': Int % Range(0, None),
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
     },
@@ -223,9 +224,12 @@ plugin.methods.register_function(
                           'because that value produces empty sequence '
                           'records.',
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
-        'max_expected_errors': 'Discard reads that exceed maximum expected erroneous nucleotides.',
-        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality lower than threshold from 3 prime end.',
-        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality lower than threshold from 5 prime end.',
+        'max_expected_errors': 'Discard reads that exceed maximum expected '
+                               'erroneous nucleotides.',
+        'quality_cutoff_3end': 'Trim nucleotides with Phred score quality '
+                               'lower than threshold from 3 prime end.',
+        'quality_cutoff_5end': 'Trim nucleotides with Phred score quality '
+                               'lower than threshold from 5 prime end.',
         'quality_base': 'How the Phred score is encoded (33 or 64).',
     },
     output_descriptions={

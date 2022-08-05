@@ -10,7 +10,6 @@ import gzip
 import itertools
 import os
 import unittest
-
 import pandas as pd
 
 from q2_cutadapt._trim import _build_trim_command
@@ -77,7 +76,6 @@ class TestTrimSingle(TestPluginBase):
                 for record in itertools.zip_longest(*[obs_fh] * 4):
                     self.assertTrue(record[0] != empty_seq_id)
 
-    #def test_m
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -177,7 +175,7 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       minimum_length=2,
                                       discard_untrimmed=True,
                                       max_expected_errors=1,
-                                      quality_cutoff_3end=20, 
+                                      quality_cutoff_3end=20,
                                       quality_cutoff_5end=20,
                                       quality_base=33)
             obs = ' '.join(obs)
@@ -199,9 +197,6 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('-q 20,20' in obs)
             self.assertTrue('--quality-base 33' in obs)
-
-
-
             self.assertTrue(str(self.demux_seqs) in obs)
 
     def test_build_trim_command_multiple_adapters(self):
@@ -266,7 +261,7 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       minimum_length=2,
                                       discard_untrimmed=True,
                                       max_expected_errors=1,
-                                      quality_cutoff_3end=20, 
+                                      quality_cutoff_3end=20,
                                       quality_cutoff_5end=20,
                                       quality_base=33)
             obs = ' '.join(obs)
