@@ -38,7 +38,7 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
-                         untrimmed_dir_fmt, error_rate, minimum_length, cores):
+                         untrimmed_dir_fmt, error_rate, minimum_length, cores=1):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
@@ -48,7 +48,6 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
            '-o', os.path.join(str(per_sample_dir_fmt), '{name}.1.fastq.gz'),
            '--untrimmed-output',
            os.path.join(str(untrimmed_dir_fmt), 'forward.fastq.gz'),
-           '-j', str(cores),
            ]
     if isinstance(seqs_dir_fmt, MultiplexedPairedEndBarcodeInSequenceDirFmt):
         # PAIRED-END
@@ -68,6 +67,8 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
     else:
         # SINGLE-END
         cmd += [str(seqs_dir_fmt.file.view(FastqGzFormat))]
+
+    cmd += ['-j', str(cores)]
     return cmd
 
 
