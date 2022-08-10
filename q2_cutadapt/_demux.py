@@ -38,7 +38,8 @@ def run_command(cmd, verbose=True):
 
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
-                         untrimmed_dir_fmt, error_rate, minimum_length, cores=1):
+                         untrimmed_dir_fmt, error_rate, minimum_length,
+                         cores=1):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),

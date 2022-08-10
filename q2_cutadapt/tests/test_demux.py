@@ -580,9 +580,8 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
             self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])
             self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])
             self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
-                         obs[11])
+                             obs[11])
             self.assertTrue('1' in obs[13])
-
 
     def test_rename_files_single(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
