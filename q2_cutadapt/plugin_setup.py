@@ -32,6 +32,7 @@ import q2_cutadapt
 import q2_cutadapt._demux
 import q2_cutadapt._trim
 
+
 plugin = Plugin(
     name='cutadapt',
     version=q2_cutadapt.__version__,

@@ -10,6 +10,7 @@ import gzip
 import itertools
 import os
 import unittest
+
 import pandas as pd
 
 from q2_cutadapt._trim import _build_trim_command
