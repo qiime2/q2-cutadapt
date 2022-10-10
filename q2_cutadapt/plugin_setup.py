@@ -65,6 +65,7 @@ plugin.methods.register_function(
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
+        'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
@@ -115,6 +116,9 @@ plugin.methods.register_function(
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
         'max_expected_errors': 'Discard reads that exceed maximum expected '
                                'erroneous nucleotides.',
+        'max_n': 'Discard reads with more than COUNT N bases. '
+                 'If COUNT_or_FRACTION is a number between 0 and 1, '
+                 'it is interpreted as a fraction of the read length.',
         'quality_cutoff_3end': 'Trim nucleotides with Phred score quality '
                                'lower than threshold from 3 prime end.',
         'quality_cutoff_5end': 'Trim nucleotides with Phred score quality '
@@ -155,6 +159,7 @@ plugin.methods.register_function(
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
+        'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
@@ -227,6 +232,9 @@ plugin.methods.register_function(
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
         'max_expected_errors': 'Discard reads that exceed maximum expected '
                                'erroneous nucleotides.',
+        'max_n': 'Discard reads with more than COUNT N bases. '
+                 'If COUNT_or_FRACTION is a number between 0 and 1, '
+                 'it is interpreted as a fraction of the read length.',
         'quality_cutoff_3end': 'Trim nucleotides with Phred score quality '
                                'lower than threshold from 3 prime end.',
         'quality_cutoff_5end': 'Trim nucleotides with Phred score quality '
