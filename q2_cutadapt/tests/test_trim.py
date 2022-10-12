@@ -284,8 +284,6 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       discard_untrimmed=True,
                                       max_expected_errors=1,
                                       max_n=0,
-                                      quality_cutoff_5end=10,
-                                      quality_cutoff_3end=20,
                                       quality_base=33)
             obs = ' '.join(obs)
 
@@ -305,7 +303,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--discard-untrimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
-            self.assertTrue('-q 10,20' in obs)
+            self.assertTrue('-q 0,0' in obs)
             self.assertTrue('--quality-base 33' in obs)
             self.assertTrue(str(self.demux_seqs) in obs)
 
@@ -372,8 +370,6 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       discard_untrimmed=True,
                                       max_expected_errors=1,
                                       max_n=0,
-                                      quality_cutoff_5end=10,
-                                      quality_cutoff_3end=20,
                                       quality_base=33)
             obs = ' '.join(obs)
 
@@ -398,7 +394,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--discard-untrimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
-            self.assertTrue('-q 10,20' in obs)
+            self.assertTrue('-q 0,0' in obs)
             self.assertTrue('--quality-base 33' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
