@@ -741,5 +741,12 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         self.assertTrue(reverse.path.is_file())
 
 
+class TestExamples(TestPluginBase):
+    package = 'q2_cutadapt.tests'
+
+    def test_examples(self):
+        self.execute_examples()
+
+
 if __name__ == '__main__':
     unittest.main()

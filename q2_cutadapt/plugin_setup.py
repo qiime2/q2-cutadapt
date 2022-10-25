@@ -32,6 +32,8 @@ import q2_cutadapt
 import q2_cutadapt._demux
 import q2_cutadapt._trim
 
+import q2_cutadapt._examples as ex
+
 
 plugin = Plugin(
     name='cutadapt',
@@ -270,6 +272,7 @@ plugin.methods.register_function(
                 'sample ids). Barcodes are expected to be located within the '
                 'sequence data (versus the header, or a separate barcode '
                 'file).',
+    examples={'demux_single': ex.cutadapt_demux_single},
 )
 
 plugin.methods.register_function(
