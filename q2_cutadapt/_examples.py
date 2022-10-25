@@ -35,9 +35,9 @@ def cutadapt_demux_single(use):
     per_sample_sequences, untrimmed_sequences = use.action(
 
             use.UsageAction(plugin_id='cutadapt', action_id='demux_single'),
-            use.UsageInputs(seqs=seqs, barcodes_file=barcodes, barcodes_column='barcode-sequence'),
-            use.UsageOutputNames(per_sample_sequences='per_sample_sequences', untrimmed_sequences='untrimmed_sequences'),
-            )
+            use.UsageInputs(seqs=seqs, barcodes=barcodes), # barcodes_column='barcode-sequence'
+            use.UsageOutputNames(per_sample_sequences='per_sample_sequences',
+                                 untrimmed_sequences='untrimmed_sequences'))
     per_sample_sequences.assert_output_type('SampleData[SequencesWithQuality')
     untrimmed_sequences.assert_output_type('MultiplexedSingleEndBarcodeInSequence')
 
@@ -125,7 +125,7 @@ def cutadapt_demux_single(use):
 # def group_timepoints_beta(use):
 #     beta = use.init_artifact('beta', beta_div_factory)
 #     metadata = use.init_metadata('metadata', beta_md_factory)
-# 
+#
 #     timepoints, references = use.action(
 #         use.UsageAction('fmt', 'group_timepoints'),
 #         use.UsageInputs(
@@ -140,7 +140,7 @@ def cutadapt_demux_single(use):
 #             reference_dists='reference_dists'
 #         )
 #     )
-# 
+#
 #     timepoints.assert_output_type('GroupDist[Ordered, Matched]')
 #     references.assert_output_type('GroupDist[Unordered, Independent]')
 #
@@ -149,7 +149,7 @@ def cutadapt_demux_single(use):
 # def engraftment_baseline(use):
 #     md = use.init_metadata('md', faithpd_md_factory)
 #     div_measure = use.init_artifact('div_measure', faithpd_div_factory)
-# 
+#
 #     stats_table, raincloud = use.action(
 #         use.UsageAction('fmt', 'engraftment'),
 #         use.UsageInputs(
@@ -169,6 +169,6 @@ def cutadapt_demux_single(use):
 #             raincloud_plot='raincloud_plot'
 #         )
 #     )
-# 
+#
 #     stats_table.assert_output_type('StatsTable[Pairwise]')
 #     raincloud.assert_output_type('Visualization')
