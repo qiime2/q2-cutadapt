@@ -9,7 +9,7 @@
 
 # the examples are registered in plugin setup!
 import os
-#import pkg_resources
+import pkg_resources
 
 import qiime2
 
@@ -19,6 +19,7 @@ import qiime2
 
 
 def cutadapt_demux_single(use):
+    seqs_fp = 
     sequence_url = 'https://data.qiime2.org/2022.8/tutorials/moving-pictures/emp-single-end-sequences/sequences.fastq.gz'
     barcode_url = 'https://data.qiime2.org/2022.8/tutorials/moving-pictures/emp-single-end-sequences/barcodes.fastq.gz'
 
