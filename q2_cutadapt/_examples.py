@@ -77,7 +77,8 @@ def cutadapt_demux_single(use):
 #
 #
 # def load_single_end_multiplexed_artifact_factory():
-#     return qiime2.Artifact.load(_get_data_from_tests(os.path.join('single-end', 'emp-single-end-sequences.qza')))
+#     return qiime2.Artifact.load(_get_data_from_tests(os.path.join('single-end',
+#                                                      'emp-single-end-sequences.qza')))
 
 # def barcodes_artifact_factory():
 #         return qiime2.Artifact.load(_get_data_from_tests(os.path.join(os.path.join('single-end', 'barcodes.fastq.gz'))))
