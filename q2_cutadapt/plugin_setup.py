@@ -272,7 +272,7 @@ plugin.methods.register_function(
                 'sample ids). Barcodes are expected to be located within the '
                 'sequence data (versus the header, or a separate barcode '
                 'file).',
-    examples={ 'demux_single': ex.cutadapt_demux_single,
+    examples={'demux_single': ex.cutadapt_demux_single
               },
 )
 
