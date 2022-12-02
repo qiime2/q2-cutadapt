@@ -749,4 +749,5 @@ class TestExamples(TestPluginBase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+      self.plugin = get_dummy_plugin()
+      unittest.main()
