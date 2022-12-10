@@ -142,7 +142,6 @@ class TestTrimSingle(TestPluginBase):
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
             with gzip.open(str(obs_fp), 'rt') as obs_fh:
                 for record in itertools.zip_longest(*[obs_fh] * 4):
-                    print(record[1], type(record[1]), len(record[1]))
                     if record[0].strip() in q5_seq_id:
                         self.assertTrue(len(record[1].strip()) == 112)
                     elif record[0].strip() in q3_seq_id_not_trim:
@@ -165,7 +164,6 @@ class TestTrimSingle(TestPluginBase):
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
             with gzip.open(str(obs_fp), 'rt') as obs_fh:
                 for record in itertools.zip_longest(*[obs_fh] * 4):
-                    print(record)
                     self.assertTrue(record[0].strip() != maxee_seq_id)
 
     # Test max_n
