@@ -77,6 +77,111 @@ class TestTrimSingle(TestPluginBase):
                 for record in itertools.zip_longest(*[obs_fh] * 4):
                     self.assertTrue(record[0] != empty_seq_id)
 
+    # Test quality param runs as expected
+    # Test q5
+    def test_quality_paramq5(self):
+        demuxed_art = Artifact.import_data(
+                      'SampleData[SequencesWithQuality]',
+                      self.get_data_path('single-end-quality'))
+        sel_q_seq_id = ['@HWI-EAS440_0386:1:31:9235:14704#0/1',
+                        '@HWI-EAS440_0386:1:32:4292:6388#0/1']
+
+        q5 = 20
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](
+                       demuxed_art, quality_cutoff_5end=q5)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    if record[0].strip() in sel_q_seq_id:
+                        self.assertTrue(len(record[1].strip()) == 132)
+                    else:
+                        self.assertTrue(len(record[1].strip()) == 152)
+
+    # Test q3
+    def test_quality_paramq3(self):
+        demuxed_art = Artifact.import_data(
+                      'SampleData[SequencesWithQuality]',
+                      self.get_data_path('single-end-quality'))
+        q3_seq_id_not_trim = ['@HWI-EAS440_0386:1:65:6657:15399#0/1',
+                              '@HWI-EAS440_0386:1:70:7591:17599#0/1',
+                              '@HWI-EAS440_0386:1:72:7520:2633#0/1']
+        q3 = 10
+
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](
+                       demuxed_art, quality_cutoff_3end=q3)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    if record[0].strip() in q3_seq_id_not_trim:
+                        self.assertTrue(len(record[1].strip()) == 152)
+                    else:
+                        self.assertTrue(len(record[1].strip()) == 132)
+
+    # Test q5 and q3
+    def test_quality_paramq5q3(self):
+        demuxed_art = Artifact.import_data(
+                      'SampleData[SequencesWithQuality]',
+                      self.get_data_path('single-end-quality'))
+        q5_seq_id = ['@HWI-EAS440_0386:1:31:9235:14704#0/1',
+                     '@HWI-EAS440_0386:1:32:4292:6388#0/1']
+        q3_seq_id_not_trim = ['@HWI-EAS440_0386:1:65:6657:15399#0/1',
+                              '@HWI-EAS440_0386:1:70:7591:17599#0/1',
+                              '@HWI-EAS440_0386:1:72:7520:2633#0/1']
+        q5 = 20
+        q3 = 10
+
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](
+                       demuxed_art, quality_cutoff_5end=q5,
+                       quality_cutoff_3end=q3)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    if record[0].strip() in q5_seq_id:
+                        self.assertTrue(len(record[1].strip()) == 112)
+                    elif record[0].strip() in q3_seq_id_not_trim:
+                        self.assertTrue(len(record[1].strip()) == 152)
+                    else:
+                        self.assertTrue(len(record[1].strip()) == 132)
+
+    # Test max_expected_errors
+    def test_quality_param_maxee(self):
+        demuxed_art = Artifact.import_data(
+                      'SampleData[SequencesWithQuality]',
+                      self.get_data_path('single-end-quality'))
+        maxee_seq_id = '@HWI-EAS440_0386:1:70:7591:17599#0/1'
+        max_expected_errors = 1
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](
+                       demuxed_art,
+                       max_expected_errors=max_expected_errors)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    self.assertTrue(record[0].strip() != maxee_seq_id)
+
+    # Test max_n
+    def test_quality_param_maxn(self):
+        demuxed_art = Artifact.import_data(
+                      'SampleData[SequencesWithQuality]',
+                      self.get_data_path('single-end-quality'))
+        maxn_seq_id = '@HWI-EAS440_0386:1:72:15133:12639#0/1'
+        max_n = 0
+        with redirected_stdio(stdout=os.devnull):
+            obs_art, = self.plugin.methods['trim_single'](
+                      demuxed_art, max_n=max_n)
+        obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
+            with gzip.open(str(obs_fp), 'rt') as obs_fh:
+                for record in itertools.zip_longest(*[obs_fh] * 4):
+                    self.assertTrue(record[0].strip() != maxn_seq_id)
+
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -174,7 +279,10 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
-                                      discard_untrimmed=True)
+                                      discard_untrimmed=True,
+                                      max_expected_errors=1,
+                                      max_n=0,
+                                      quality_base=33)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -191,7 +299,10 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
-
+            self.assertTrue('--max-expected-errors 1' in obs)
+            self.assertTrue('--max-n 0' in obs)
+            self.assertTrue('-q 0,0' in obs)
+            self.assertTrue('--quality-base 33' in obs)
             self.assertTrue(str(self.demux_seqs) in obs)
 
     def test_build_trim_command_multiple_adapters(self):
@@ -254,7 +365,10 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       match_read_wildcards=True,
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
-                                      discard_untrimmed=True)
+                                      discard_untrimmed=True,
+                                      max_expected_errors=1,
+                                      max_n=0,
+                                      quality_base=33)
             obs = ' '.join(obs)
 
             self.assertTrue('-o %s' % str(self.trimmed_seqs.path / fwd[0])
@@ -276,6 +390,10 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
+            self.assertTrue('--max-expected-errors 1' in obs)
+            self.assertTrue('--max-n 0' in obs)
+            self.assertTrue('-q 0,0' in obs)
+            self.assertTrue('--quality-base 33' in obs)
 
             self.assertTrue(str(self.demux_seqs) in obs)
 
