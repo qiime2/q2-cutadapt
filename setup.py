@@ -30,6 +30,7 @@ setup(
             'data/*',
             'data/single-end/*',
             'data/paired-end/*',
+            'data/single-end-quality/*',
             'data/paired-end-unordered/*',
             'data/mixed-orientation/*',
         ],
