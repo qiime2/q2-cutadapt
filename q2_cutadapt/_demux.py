@@ -122,39 +122,58 @@ def _write_empty_fastq_to_mux_barcode_in_seq_fmt(seqs_dir_fmt):
         seqs_dir_fmt.file.write_data(fastq, FastqGzFormat)
 
 
+def _check_barcodes_uniqueness(
+        forward_barcodes: qiime2.CategoricalMetadataColumn,
+        reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
+        mixed_orientation: bool = False,
+):
+    for_barcodes = forward_barcodes.to_series().to_frame()
+    if reverse_barcodes is not None:
+        rev_barcodes = reverse_barcodes.to_series()
+    else:
+        # Quite ugly but it allows to continue to use the same logic as before
+        rev_barcodes = forward_barcodes.to_series()
+    # 'sort = false' below prevents a warning about future behavior changes
+    # by selecting the future behavior explicitly
+    barcodes = pd.concat([for_barcodes, rev_barcodes], axis=1, sort=False)
+
+    barcode_pairs = set()
+    samples_w_missing_barcodes = set()
+    samples_w_dup_barcode_pairs = set()
+
+    for sample_id, f_barcode, r_barcode in barcodes.itertuples():
+        if pd.isnull(f_barcode) or pd.isnull(r_barcode):
+            samples_w_missing_barcodes.add(sample_id)
+        if (f_barcode, r_barcode) in barcode_pairs:
+            samples_w_dup_barcode_pairs.add(sample_id)
+        barcode_pairs.add((f_barcode, r_barcode))
+        if mixed_orientation:
+            barcode_pairs.add((r_barcode, f_barcode))
+
+    if samples_w_missing_barcodes:
+        raise ValueError('The following samples do not have both '
+                         'forward and reverse barcodes (note: if your '
+                         'reads are in single index mixed orientation, '
+                         'try again with all of your barcodes in a single '
+                         'metadata column): %s'
+                         % ', '.join(sorted(samples_w_missing_barcodes)))
+    if samples_w_dup_barcode_pairs:
+        raise ValueError('The following samples have duplicate barcode '
+                         'pairs (note: if your reads are in dual index mixed'
+                         'orientation, forward-reverse pairs are also '
+                         'used as reverse-forward pairs ): %s'
+                         % ', '.join(sorted(samples_w_dup_barcode_pairs)))
+
+
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
            error_tolerance, mux_fmt, batch_size, minimum_length, cores):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
     if reverse_barcodes is not None:
-        barcode_pairs = set()
-        samples_w_missing_barcodes = set()
-        samples_w_dup_barcode_pairs = set()
         rev_barcode_name = reverse_barcodes.name
         rev_barcodes = reverse_barcodes.to_series()
-        # 'sort = false' below prevents a warning about future behavior changes
-        # by selecting the future behavior explicitly
         barcodes = pd.concat([barcodes, rev_barcodes], axis=1, sort=False)
-
-        for sample_id, f_barcode, r_barcode in barcodes.itertuples():
-            if pd.isnull(f_barcode) or pd.isnull(r_barcode):
-                samples_w_missing_barcodes.add(sample_id)
-            if (f_barcode, r_barcode) in barcode_pairs:
-                samples_w_dup_barcode_pairs.add(sample_id)
-            barcode_pairs.add((f_barcode, r_barcode))
-
-        if samples_w_missing_barcodes:
-            raise ValueError('The following samples do not have both '
-                             'forward and reverse barcodes (note: if your '
-                             'reads are in single index mixed orientation, '
-                             'try again with all of your barcodes in a single '
-                             'metadata column): %s'
-                             % ', '.join(sorted(samples_w_missing_barcodes)))
-        if samples_w_dup_barcode_pairs:
-            raise ValueError('The following samples have duplicate barcode'
-                             ' pairs: %s' %
-                             ', '.join(sorted(samples_w_dup_barcode_pairs)))
 
     n_samples = len(barcodes)
     if batch_size > n_samples:
@@ -199,6 +218,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  cores: int = 1) -> \
                  (CasavaOneEightSingleLanePerSampleDirFmt,
                   MultiplexedSingleEndBarcodeInSequenceDirFmt):
+    _check_barcodes_uniqueness(barcodes, None, False)
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedSingleEndBarcodeInSequenceDirFmt
 
@@ -219,9 +239,8 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  cores: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
-    if mixed_orientation and reverse_barcodes is not None:
-        raise ValueError('Dual-indexed barcodes for mixed orientation '
-                         'reads are not supported.')
+    _check_barcodes_uniqueness(
+        forward_barcodes, reverse_barcodes, mixed_orientation)
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
