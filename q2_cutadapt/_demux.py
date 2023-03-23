@@ -142,24 +142,35 @@ def _check_barcodes_uniqueness(
     samples_w_dup_barcode_pairs = set()
 
     for sample_id, f_barcode, r_barcode in barcodes.itertuples():
-        if pd.isnull(f_barcode) or pd.isnull(r_barcode):
-            samples_w_missing_barcodes.add(sample_id)
-        if (f_barcode, r_barcode) in barcode_pairs:
-            samples_w_dup_barcode_pairs.add(sample_id)
-        barcode_pairs.add((f_barcode, r_barcode))
-        if mixed_orientation:
-            barcode_pairs.add((r_barcode, f_barcode))
+        if reverse_barcodes is None:
+            if pd.isnull(f_barcode):
+                samples_w_missing_barcodes.add(sample_id)
+            if f_barcode in barcode_pairs:
+                samples_w_dup_barcode_pairs.add(sample_id)
+            barcode_pairs.add(f_barcode)
+        else:
+            if pd.isnull(f_barcode) or pd.isnull(r_barcode):
+                samples_w_missing_barcodes.add(sample_id)
+            if (f_barcode, r_barcode) in barcode_pairs:
+                samples_w_dup_barcode_pairs.add(sample_id)
+            barcode_pairs.add((f_barcode, r_barcode))
+            if mixed_orientation:
+                barcode_pairs.add((r_barcode, f_barcode))
 
     if samples_w_missing_barcodes:
-        raise ValueError('The following samples do not have both '
-                         'forward and reverse barcodes (note: if your '
-                         'reads are in single index mixed orientation, '
-                         'try again with all of your barcodes in a single '
-                         'metadata column): %s'
-                         % ', '.join(sorted(samples_w_missing_barcodes)))
+        if reverse_barcodes is None:
+            raise ValueError('The following samples do not have barcodes : %s'
+                             % ', '.join(sorted(samples_w_missing_barcodes)))
+        else:
+            raise ValueError('The following samples do not have both '
+                             'forward and reverse barcodes (note: if your '
+                             'reads are in single index mixed orientation, '
+                             'try again with all of your barcodes in a single '
+                             'metadata column): %s'
+                             % ', '.join(sorted(samples_w_missing_barcodes)))
     if samples_w_dup_barcode_pairs:
         raise ValueError('The following samples have duplicate barcode '
-                         'pairs (note: if your reads are in dual index mixed'
+                         '(note: if your reads are in dual index mixed'
                          'orientation, forward-reverse pairs are also '
                          'used as reverse-forward pairs ): %s'
                          % ', '.join(sorted(samples_w_dup_barcode_pairs)))
