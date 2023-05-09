@@ -140,6 +140,7 @@ def _check_barcodes_uniqueness(
     barcode_pairs = set()
     samples_w_missing_barcodes = set()
     samples_w_dup_barcode_pairs = set()
+    samples_w_identical_f_r = set()
 
     for sample_id, f_barcode, r_barcode in barcodes.itertuples():
         if reverse_barcodes is None:
@@ -156,6 +157,8 @@ def _check_barcodes_uniqueness(
             barcode_pairs.add((f_barcode, r_barcode))
             if mixed_orientation:
                 barcode_pairs.add((r_barcode, f_barcode))
+                if f_barcode == r_barcode:
+                    samples_w_identical_f_r.add(sample_id)
 
     if samples_w_missing_barcodes:
         if reverse_barcodes is None:
@@ -172,8 +175,16 @@ def _check_barcodes_uniqueness(
         raise ValueError('The following samples have duplicate barcode '
                          '(note: if your reads are in dual index mixed'
                          'orientation, forward-reverse pairs are also '
-                         'used as reverse-forward pairs ): %s'
+                         'used as reverse-forward pairs): %s'
                          % ', '.join(sorted(samples_w_dup_barcode_pairs)))
+    if samples_w_identical_f_r:
+        print("The following samples are using identical barcode for forward "
+              "and reverse. Your resulting sequences might have sequences both "
+              "in their forward and reverse form (you might use the vsearch "
+              "plugin and perform a de novo clustering with an identity "
+              "threshold of '1' and the strand parameter set to 'both' to merge"
+              "such sequences together): %s"
+              % ', '.join(sorted(samples_w_identical_f_r)))
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
