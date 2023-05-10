@@ -39,7 +39,7 @@ class TestDemuxSingle(TestPluginBase):
         obs_demuxed = obs_demuxed_art.view(
             SingleLanePerSampleSingleEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
-        zipped = itertools.zip_longest(exp_samples_and_barcodes.iteritems(),
+        zipped = itertools.zip_longest(exp_samples_and_barcodes.items(),
                                        exp_results, obs_demuxed_seqs)
         for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
@@ -326,7 +326,7 @@ class TestDemuxPaired(TestPluginBase):
             SingleLanePerSamplePairedEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
         # Since we are working with fwd/rev reads, duplicate each list elem
-        exp = [x for x in exp_samples_and_barcodes.iteritems() for _ in (0, 1)]
+        exp = [x for x in exp_samples_and_barcodes.items() for _ in (0, 1)]
         zipped = itertools.zip_longest(exp, exp_results, obs_demuxed_seqs)
         for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
@@ -583,7 +583,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         counter = 0
         for fn, (sample_id, barcode) in zip(seqs,
-                                            self.barcode_series.iteritems()):
+                                            self.barcode_series.items()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
             counter += 1
@@ -602,7 +602,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         counter = 0
-        for fn, (sample_id, barcode) in zip(seqs, barcode_series.iteritems()):
+        for fn, (sample_id, barcode) in zip(seqs, barcode_series.items()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
             counter += 1
@@ -620,7 +620,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
         with tempfile.NamedTemporaryFile() as fh:
             _write_barcode_fasta(self.barcode_series, fh)
             fasta = open(fh.name).read()
-            for (sample_id, barcode) in self.barcode_series.iteritems():
+            for (sample_id, barcode) in self.barcode_series.items():
                 self.assertTrue(sample_id in fasta)
                 self.assertTrue(barcode in fasta)
 

@@ -79,7 +79,7 @@ def _rename_files(seqs_dir_fmt, per_sample_dir_fmt, barcode_series):
         # PAIRED-END
         read_directions.append(2)
 
-    for (sample_id, barcode_id) in barcode_series.iteritems():
+    for (sample_id, barcode_id) in barcode_series.items():
         for read_direction in read_directions:
             out_fp = per_sample_dir_fmt.sequences.path_maker(
                 sample_id=sample_id, barcode_id=barcode_id,
@@ -105,7 +105,7 @@ def _merge_files(src, dst):
 
 def _write_barcode_fasta(barcode_series, barcode_fasta):
     with open(barcode_fasta.name, 'w') as fh:
-        for (sample_id, barcode) in barcode_series.iteritems():
+        for (sample_id, barcode) in barcode_series.items():
             fh.write('>%s\n%s\n' % (sample_id, barcode))
 
 
