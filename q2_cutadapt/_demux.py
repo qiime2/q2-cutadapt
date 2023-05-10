@@ -179,11 +179,11 @@ def _check_barcodes_uniqueness(
                          % ', '.join(sorted(samples_w_dup_barcode_pairs)))
     if samples_w_identical_f_r:
         print("The following samples are using identical barcode for forward "
-              "and reverse. Your resulting sequences might have sequences both "
-              "in their forward and reverse form (you might use the vsearch "
-              "plugin and perform a de novo clustering with an identity "
-              "threshold of '1' and the strand parameter set to 'both' to merge"
-              "such sequences together): %s"
+              "and reverse. Your resulting sequences might have sequences "
+              "both in their forward and reverse form (you might use the "
+              "vsearch plugin and perform a de novo clustering with an "
+              "identity threshold of '1' and the strand parameter set to "
+              "'both' to merge such sequences together): %s"
               % ', '.join(sorted(samples_w_identical_f_r)))
 
 
