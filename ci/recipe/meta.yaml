@@ -27,7 +27,7 @@ requirements:
 
 test:
   commands:
-    - py.test --pyargs q2_types
+    - py.test --pyargs q2_cutadapt
 
   requires:
     - qiime2 >={{ qiime2 }}
