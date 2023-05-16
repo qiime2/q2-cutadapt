@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import warnings
 
 import qiime2
 from q2_types.per_sample_sequences import (
@@ -127,64 +128,66 @@ def _check_barcodes_uniqueness(
         reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
         mixed_orientation: bool = False,
 ):
-    for_barcodes = forward_barcodes.to_series().to_frame()
-    if reverse_barcodes is not None:
-        rev_barcodes = reverse_barcodes.to_series()
-    else:
-        # Quite ugly but it allows to continue to use the same logic as before
-        rev_barcodes = forward_barcodes.to_series()
-    # 'sort = false' below prevents a warning about future behavior changes
-    # by selecting the future behavior explicitly
-    barcodes = pd.concat([for_barcodes, rev_barcodes], axis=1, sort=False)
-
+    barcodes = forward_barcodes.to_series().to_frame()
+    # Sets with problematic samples
     barcode_pairs = set()
     samples_w_missing_barcodes = set()
     samples_w_dup_barcode_pairs = set()
     samples_w_identical_f_r = set()
-
-    for sample_id, f_barcode, r_barcode in barcodes.itertuples():
-        if reverse_barcodes is None:
-            if pd.isnull(f_barcode):
+    # Test if all barcodes are unique when working with single index for both
+    #  single and mixed orientation
+    if reverse_barcodes is None:
+        for sample_id, fwd_barcode in barcodes.itertuples():
+            if pd.isnull(fwd_barcode):
                 samples_w_missing_barcodes.add(sample_id)
-            if f_barcode in barcode_pairs:
+            if fwd_barcode in barcode_pairs:
                 samples_w_dup_barcode_pairs.add(sample_id)
-            barcode_pairs.add(f_barcode)
-        else:
-            if pd.isnull(f_barcode) or pd.isnull(r_barcode):
+            barcode_pairs.add(fwd_barcode)
+        # Raise if issues detected
+        if samples_w_missing_barcodes:
+            raise ValueError('The following samples do not have barcodes '
+                             '(note: if your reads are using single index in '
+                             'mixed orientation, try again with all of your '
+                             'barcodes in a single metadata column): %s'
+                             % ', '.join(sorted(samples_w_missing_barcodes)))
+        if samples_w_dup_barcode_pairs:
+            raise ValueError('The following samples have duplicate barcode: %s'
+                             % ', '.join(sorted(samples_w_dup_barcode_pairs)))
+    # Test if all barcodes are unique when working with dual index for both
+    #  single and mixed orientation
+    else:
+        rev_barcodes = reverse_barcodes.to_series()
+        barcodes = pd.concat([barcodes, rev_barcodes], axis=1, sort=False)
+        for sample_id, fwd_barcode, rev_barcode in barcodes.itertuples():
+            if pd.isnull(fwd_barcode) or pd.isnull(rev_barcode):
                 samples_w_missing_barcodes.add(sample_id)
-            if (f_barcode, r_barcode) in barcode_pairs:
+            if (fwd_barcode, rev_barcode) in barcode_pairs:
                 samples_w_dup_barcode_pairs.add(sample_id)
-            barcode_pairs.add((f_barcode, r_barcode))
+            barcode_pairs.add((fwd_barcode, rev_barcode))
             if mixed_orientation:
-                barcode_pairs.add((r_barcode, f_barcode))
-                if f_barcode == r_barcode:
+                barcode_pairs.add((rev_barcode, fwd_barcode))
+                if fwd_barcode == rev_barcode:
                     samples_w_identical_f_r.add(sample_id)
-
-    if samples_w_missing_barcodes:
-        if reverse_barcodes is None:
-            raise ValueError('The following samples do not have barcodes : %s'
+        # Raise if issues detected
+        if samples_w_missing_barcodes:
+            raise ValueError('The following samples do not have both forward '
+                             'and reverse barcodes: %s'
                              % ', '.join(sorted(samples_w_missing_barcodes)))
-        else:
-            raise ValueError('The following samples do not have both '
-                             'forward and reverse barcodes (note: if your '
-                             'reads are in single index mixed orientation, '
-                             'try again with all of your barcodes in a single '
-                             'metadata column): %s'
-                             % ', '.join(sorted(samples_w_missing_barcodes)))
-    if samples_w_dup_barcode_pairs:
-        raise ValueError('The following samples have duplicate barcode '
-                         '(note: if your reads are in dual index mixed'
-                         'orientation, forward-reverse pairs are also '
-                         'used as reverse-forward pairs): %s'
-                         % ', '.join(sorted(samples_w_dup_barcode_pairs)))
-    if samples_w_identical_f_r:
-        print("The following samples are using identical barcode for forward "
-              "and reverse. Your resulting sequences might have sequences "
-              "both in their forward and reverse form (you might use the "
-              "vsearch plugin and perform a de novo clustering with an "
-              "identity threshold of '1' and the strand parameter set to "
-              "'both' to merge such sequences together): %s"
-              % ', '.join(sorted(samples_w_identical_f_r)))
+        if samples_w_dup_barcode_pairs:
+            raise ValueError('The following samples have duplicate barcode '
+                             '(note: if your reads are in mixed orientation, '
+                             'forward-reverse pairs are also used as '
+                             'reverse-forward pairs): %s'
+                             % ', '.join(sorted(samples_w_dup_barcode_pairs)))
+        if samples_w_identical_f_r:
+            warnings.warn("The following samples are using identical barcode for "
+                          "forward and reverse. Your resulting sequences might "
+                          "have sequences both in their forward and reverse form "
+                          "(you might use the vsearch plugin and perform a de "
+                          "novo clustering with an identity threshold of '1' and "
+                          "the strand parameter set to 'both' to merge such "
+                          "sequences together): %s"
+                          % ', '.join(sorted(samples_w_identical_f_r)))
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
