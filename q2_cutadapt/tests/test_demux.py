@@ -39,7 +39,7 @@ class TestDemuxSingle(TestPluginBase):
         obs_demuxed = obs_demuxed_art.view(
             SingleLanePerSampleSingleEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
-        zipped = itertools.zip_longest(exp_samples_and_barcodes.iteritems(),
+        zipped = itertools.zip_longest(exp_samples_and_barcodes.items(),
                                        exp_results, obs_demuxed_seqs)
         for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
@@ -326,7 +326,7 @@ class TestDemuxPaired(TestPluginBase):
             SingleLanePerSamplePairedEndFastqDirFmt)
         obs_demuxed_seqs = obs_demuxed.sequences.iter_views(FastqGzFormat)
         # Since we are working with fwd/rev reads, duplicate each list elem
-        exp = [x for x in exp_samples_and_barcodes.iteritems() for _ in (0, 1)]
+        exp = [x for x in exp_samples_and_barcodes.items() for _ in (0, 1)]
         zipped = itertools.zip_longest(exp, exp_results, obs_demuxed_seqs)
         for (sample_id, barcode), exp, (filename, fmt) in zipped:
             filename = str(filename)
@@ -382,7 +382,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample b, fwd
+            # sample b, rev
             '@id2\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
             '@id4\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
             '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n', ]
@@ -396,7 +396,7 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
-    def test_di_typical(self):
+    def test_dual_index_success(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
@@ -414,7 +414,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample a, fwd
+            # sample a, rev
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
@@ -426,6 +426,55 @@ class TestDemuxPaired(TestPluginBase):
                 self.demux_paired_fn(self.muxed_sequences,
                                      forward_barcodes=forward_barcodes,
                                      reverse_barcodes=reverse_barcodes)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_dual_index_mixed_orientation_success(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        muxed_mixed_orientation_sequences_f_fp = self.get_data_path(
+            'dual-index-mixed-orientation/forward.fastq.gz')
+        muxed_mixed_orientation_sequences_r_fp = self.get_data_path(
+            'dual-index-mixed-orientation/reverse.fastq.gz')
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(muxed_mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(muxed_mixed_orientation_sequences_r_fp, temp)
+            muxed_mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(muxed_mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     reverse_barcodes=reverse_barcodes,
+                                     mixed_orientation=True)
+        exp = [
+            # sample a, fwd
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id1\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id3\nTGCATGCA\n+\nzzzzzzzz\n',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
+        exp_untrimmed = ['@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n',
+                         '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n', ]
+        # Rem: untrimmed sequences are in reverse order compared to
+        # `test_dual_index_success` because `demux_paired()` exchange forward
+        # reverse sequence after a first demux when `mixed_orientation` is used
 
         self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
@@ -487,7 +536,7 @@ class TestDemuxPaired(TestPluginBase):
         # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results(['', ''], obs_untrimmed_art)
 
-    def test_di_mismatched_barcodes(self):
+    def test_dual_index_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC', 'ACGT'], name='ForwardBarcode',
                       index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
@@ -501,7 +550,7 @@ class TestDemuxPaired(TestPluginBase):
                                  forward_barcodes=forward_barcodes,
                                  reverse_barcodes=reverse_barcodes)
 
-    def test_di_duplicate_barcode_pairs(self):
+    def test_dual_index_duplicate_barcode_pairs_not_mixed(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC', 'AAAA', 'CCCC'], name='ForwardBarcode',
                       index=pd.Index(
@@ -519,35 +568,24 @@ class TestDemuxPaired(TestPluginBase):
                                  forward_barcodes=forward_barcodes,
                                  reverse_barcodes=reverse_barcodes)
 
-    def test_multiple_orientations_dual_indices(self):
+    def test_dual_index_duplicate_barcode_pairs_mixed(self):
         forward_barcodes = CategoricalMetadataColumn(
-            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
-                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+            pd.Series(['AAAA', 'CCCC', 'GGGG', 'TTTT'], name='ForwardBarcode',
+                      index=pd.Index(
+                            ['sample_a', 'sample_b', 'sample_d', 'sample_c'],
+                            name='id')))
         reverse_barcodes = CategoricalMetadataColumn(
-            pd.Series(['GGGG', 'TTTT'], name='ReverseBarcode',
-                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+            pd.Series(['GGGG', 'TTTT', 'AAAA', 'CCCC'], name='ReverseBarcode',
+                      index=pd.Index(
+                            ['sample_a', 'sample_b', 'sample_d', 'sample_c'],
+                            name='id')))
 
-        mixed_orientation_sequences_f_fp = self.get_data_path(
-            'mixed-orientation/forward.fastq.gz')
-        mixed_orientation_sequences_r_fp = self.get_data_path(
-            'mixed-orientation/reverse.fastq.gz')
-
-        # These files have forward and reverse reads mixed together in the same
-        # file
-        with tempfile.TemporaryDirectory() as temp:
-            shutil.copy(mixed_orientation_sequences_f_fp, temp)
-            shutil.copy(mixed_orientation_sequences_r_fp, temp)
-            mixed_orientation_sequences = Artifact.import_data(
-                'MultiplexedPairedEndBarcodeInSequence', temp)
-
-        with self.assertRaisesRegex(ValueError,
-                                    'Dual-indexed barcodes for mixed '
-                                    'orientation reads are not supported.'):
-            obs_demuxed_art, obs_untrimmed_art = \
-                self.demux_paired_fn(mixed_orientation_sequences,
-                                     forward_barcodes=forward_barcodes,
-                                     reverse_barcodes=reverse_barcodes,
-                                     mixed_orientation=True)
+        with self.assertRaisesRegex(
+                ValueError, 'duplicate barcode.*sample_c.*sample_d'):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=forward_barcodes,
+                                 reverse_barcodes=reverse_barcodes,
+                                 mixed_orientation=True)
 
 
 class TestDemuxUtilsSingleEnd(TestPluginBase):
@@ -594,7 +632,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         counter = 0
         for fn, (sample_id, barcode) in zip(seqs,
-                                            self.barcode_series.iteritems()):
+                                            self.barcode_series.items()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
             counter += 1
@@ -613,7 +651,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
 
         seqs = self.per_sample_dir_fmt.sequences.iter_views(FastqGzFormat)
         counter = 0
-        for fn, (sample_id, barcode) in zip(seqs, barcode_series.iteritems()):
+        for fn, (sample_id, barcode) in zip(seqs, barcode_series.items()):
             self.assertTrue(sample_id in str(fn))
             self.assertTrue(barcode in str(fn))
             counter += 1
@@ -631,7 +669,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
         with tempfile.NamedTemporaryFile() as fh:
             _write_barcode_fasta(self.barcode_series, fh)
             fasta = open(fh.name).read()
-            for (sample_id, barcode) in self.barcode_series.iteritems():
+            for (sample_id, barcode) in self.barcode_series.items():
                 self.assertTrue(sample_id in fasta)
                 self.assertTrue(barcode in fasta)
 
@@ -675,7 +713,7 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         exp_r = str(self.seqs_dir_fmt.reverse_sequences.view(FastqGzFormat))
         self.assertEqual(exp_r, obs[16])
 
-    def test_build_di_demux_command(self):
+    def test_build_dual_index_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta_f:
             with tempfile.NamedTemporaryFile() as barcode_fasta_r:
                 obs = _build_demux_command(self.seqs_dir_fmt,

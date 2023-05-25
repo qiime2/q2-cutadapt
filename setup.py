@@ -33,6 +33,7 @@ setup(
             'data/single-end-quality/*',
             'data/paired-end-unordered/*',
             'data/mixed-orientation/*',
+            'data/dual-index-mixed-orientation/*',
         ],
     },
     zip_safe=False,
