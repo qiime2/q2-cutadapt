@@ -40,7 +40,7 @@ def run_command(cmd, verbose=True):
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
                          untrimmed_dir_fmt, error_rate, minimum_length,
-                         cores=1):
+                         cut=0, cores=1):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
@@ -70,7 +70,10 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
         # SINGLE-END
         cmd += [str(seqs_dir_fmt.file.view(FastqGzFormat))]
 
-    cmd += ['-j', str(cores)]
+    cmd += [
+        '--cut', str(cut),
+        '-j', str(cores)
+    ]
     return cmd
 
 
@@ -191,7 +194,7 @@ def _check_barcodes_uniqueness(
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-           error_tolerance, mux_fmt, batch_size, minimum_length, cores):
+           error_tolerance, mux_fmt, batch_size, minimum_length, cut, cores):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -220,7 +223,7 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
         cmd = _build_demux_command(previous_untrimmed, open_fhs,
                                    per_sample_sequences,
                                    current_untrimmed, error_tolerance,
-                                   minimum_length, cores)
+                                   minimum_length, cut, cores)
         run_command(cmd)
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
@@ -240,6 +243,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
                  minimum_length: int = 1,
+                 cut: int = 0,
                  cores: int = 1) -> \
                  (CasavaOneEightSingleLanePerSampleDirFmt,
                   MultiplexedSingleEndBarcodeInSequenceDirFmt):
@@ -249,7 +253,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
     untrimmed = _demux(
         seqs, per_sample_sequences, barcodes, None, error_rate, mux_fmt,
-        batch_size, minimum_length, cores)
+        batch_size, minimum_length, cut, cores)
 
     return per_sample_sequences, untrimmed
 
@@ -261,6 +265,7 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  batch_size: int = 0,
                  minimum_length: int = 1,
                  mixed_orientation: bool = False,
+                 cut: int = 0,
                  cores: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
@@ -272,7 +277,7 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
 
     untrimmed = _demux(
         seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-        error_rate, mux_fmt, batch_size, minimum_length, cores)
+        error_rate, mux_fmt, batch_size, minimum_length, cut, cores)
 
     if mixed_orientation:
         fwd = untrimmed.forward_sequences.view(FastqGzFormat)
@@ -286,6 +291,6 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         untrimmed = _demux(
             remaining_seqs, per_sample_sequences, forward_barcodes,
             reverse_barcodes, error_rate, mux_fmt, batch_size,
-            minimum_length, cores)
+            minimum_length, cut, cores)
 
     return per_sample_sequences, untrimmed

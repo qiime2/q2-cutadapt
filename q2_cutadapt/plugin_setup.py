@@ -265,6 +265,7 @@ plugin.methods.register_function(
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
+        'cut': Int % Range(None),
         'cores': Int % Range(1, None),
     },
     outputs=[
@@ -291,6 +292,11 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
+        'cut': 'Remove the specified number of bases from the sequences. Bases'
+               'are removed before demultiplexing. If a positive value is'
+               'provided, bases are removed from the beginning of the '
+               'sequences. If a negative value is provided, bases are removed '
+               'from the end of the sequences',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -318,6 +324,7 @@ plugin.methods.register_function(
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
+        'cut': Int % Range(None),
         'mixed_orientation': Bool,
         'cores': Int % Range(1, None),
     },
@@ -345,9 +352,14 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
+        'cut': 'Remove the specified number of bases from the sequences. Bases'
+               'are removed before demultiplexing. If a positive value is'
+               'provided, bases are removed from the beginning of the '
+               'sequences. If a negative value is provided, bases are removed '
+               'from the end of the sequences',
         'mixed_orientation': 'Handle demultiplexing of mixed orientation '
                              'reads (i.e. when forward and reverse reads '
-                             'coexist in the same file).'
+                             'coexist in the same file).',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',

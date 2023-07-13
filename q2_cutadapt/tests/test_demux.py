@@ -316,6 +316,34 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
+    def test_cut(self):
+        metadata = CategoricalMetadataColumn(
+            # The third barcode is meant to completely remove the only GGGG
+            # coded sequence
+            pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                      name='id')))
+        exp = [
+            # sample a passed. However, as the first 'A' was removed, there was
+            #  a shift in the extracted sequence.
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in other tests
+            '@id3\nCGTACGT\n+\nzzzzzzz\n',
+            # sample b passed because by default cutadapt allows matching
+            #  non-complete adapters to the targeted sequences
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample c passed for the same reason
+            '@id6\nACGTACGT\n+\nzzzzzzzz\n', ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata, cut=1)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        # Rem: the first base was removed from all the sequences
+        self.assert_untrimmed_results('', obs_untrimmed_art)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -619,7 +647,8 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
             self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])
             self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
                              obs[11])
-            self.assertTrue('1' in obs[13])
+            self.assertTrue('0' in obs[13])
+            self.assertTrue('1' in obs[15])
 
     def test_rename_files_single(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
