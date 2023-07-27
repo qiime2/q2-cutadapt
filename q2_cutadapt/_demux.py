@@ -288,9 +288,10 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         remaining_seqs.forward_sequences.write_data(rev, FastqGzFormat)
         remaining_seqs.reverse_sequences.write_data(fwd, FastqGzFormat)
 
+        # set cut to 0 as sequences have already been cut
         untrimmed = _demux(
             remaining_seqs, per_sample_sequences, forward_barcodes,
             reverse_barcodes, error_rate, mux_fmt, batch_size,
-            minimum_length, cut, cores)
+            minimum_length, 0, cores)
 
     return per_sample_sequences, untrimmed
