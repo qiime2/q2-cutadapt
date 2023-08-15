@@ -35,6 +35,9 @@ test:
     - q2_cutadapt
     - qiime2.plugins.cutadapt
 
+  commands:
+    - py.test --pyargs q2_cutadapt
+
 about:
   home: https://qiime2.org
   license: BSD-3-Clause
