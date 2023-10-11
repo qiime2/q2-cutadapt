@@ -58,6 +58,7 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
             cmd += [
                 '--pair-adapters',
                 '-G', 'file:%s' % barcode_fhs['rev'].name,
+                '-U', str(cut),
             ]
         cmd += [
             '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),
@@ -71,7 +72,7 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
         cmd += [str(seqs_dir_fmt.file.view(FastqGzFormat))]
 
     cmd += [
-        '--cut', str(cut),
+        '-u', str(cut),
         '-j', str(cores)
     ]
     return cmd
@@ -288,10 +289,20 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         remaining_seqs.forward_sequences.write_data(rev, FastqGzFormat)
         remaining_seqs.reverse_sequences.write_data(fwd, FastqGzFormat)
 
-        # set cut to 0 as sequences have already been cut
-        untrimmed = _demux(
-            remaining_seqs, per_sample_sequences, forward_barcodes,
-            reverse_barcodes, error_rate, mux_fmt, batch_size,
-            minimum_length, 0, cores)
+        # we have two "cut" cases possible:
+        #  - no reverse barcode was provided and the cut was only applied to the forward sequences
+        #  - reverse barcodes were provided and the cut was applied on both sequences
+        if reverse_barcodes is None:
+            # apply cut to the new forward strand
+            untrimmed = _demux(
+                remaining_seqs, per_sample_sequences, forward_barcodes,
+                reverse_barcodes, error_rate, mux_fmt, batch_size,
+                minimum_length, cut, cores)
+        else:
+            # set cut to 0 as it was already applied to both strands
+            untrimmed = _demux(
+                remaining_seqs, per_sample_sequences, forward_barcodes,
+                reverse_barcodes, error_rate, mux_fmt, batch_size,
+                minimum_length, 0, cores)
 
     return per_sample_sequences, untrimmed
