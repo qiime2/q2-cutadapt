@@ -290,8 +290,10 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         remaining_seqs.reverse_sequences.write_data(fwd, FastqGzFormat)
 
         # we have two "cut" cases possible:
-        #  - no reverse barcode was provided and the cut was only applied to the forward sequences
-        #  - reverse barcodes were provided and the cut was applied on both sequences
+        #  - no reverse barcode was provided and the cut was only applied to
+        #    the forward sequences
+        #  - reverse barcodes were provided and the cut was applied on both
+        #    sequences
         if reverse_barcodes is None:
             # apply cut to the new forward strand
             untrimmed = _demux(
