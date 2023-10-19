@@ -343,17 +343,17 @@ plugin.methods.register_function(
         'reverse_barcodes': 'The sample metadata column listing the '
                             'per-sample barcodes for the reverse reads.',
         'forward_cut': 'Remove the specified number of bases from the forward '
-                       'sequences. Bases are removed before demultiplexing. If '
-                       'a positive value is provided, bases are removed from '
-                       'the beginning of the sequences. If a negative value is '
-                       'provided, bases are removed from the end of the '
-                       'sequences',
-        'reverse_cut': 'Remove the specified number of bases from the reverse '
-                       'sequences. Bases are removed before demultiplexing. If '
-                       'a positive value is provided, bases are removed from '
-                       'the beginning of the sequences. If a negative value is '
-                       'provided, bases are removed from the end of the '
-                       'sequences',
+                       'sequences. Bases are removed before demultiplexing. '
+                       'If a positive value is provided, bases are removed '
+                       'from the beginning of the sequences. If a negative '
+                       'value is provided, bases are removed from the end of '
+                       'the sequences',
+        'reverse_cut': 'Remove the specified number of bases from the forward '
+                       'sequences. Bases are removed before demultiplexing. '
+                       'If a positive value is provided, bases are removed '
+                       'from the beginning of the sequences. If a negative '
+                       'value is provided, bases are removed from the end of '
+                       'the sequences',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
