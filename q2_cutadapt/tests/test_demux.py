@@ -316,7 +316,7 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results('', obs_untrimmed_art)
 
-    def test_cut(self):
+    def test_cut_positive(self):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
                       index=pd.Index(['sample_a', 'sample_b'], name='id')))
@@ -339,6 +339,31 @@ class TestDemuxSingle(TestPluginBase):
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata, cut=1)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_cut_negative(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        # Expected demux and untrimmed sequences are the same as in
+        #  `test_typical`, only shortened of their last two nucleotides.
+        exp = [
+            # sample a
+            '@id1\nACGTAC\n+\nzzzzzz\n'
+            '@id3\nACGTAC\n+\nzzzzzz\n',
+            # sample b
+            '@id2\nACGTAC\n+\nzzzzzz\n'
+            '@id4\nACGTAC\n+\nzzzzzz\n'
+            '@id5\nACGTAC\n+\nzzzzzz\n', ]
+
+        exp_untrimmed = \
+            '@id6\nGGGGACGTAC\n+\nzzzzzzzzzz\n'
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata, cut=-2)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
