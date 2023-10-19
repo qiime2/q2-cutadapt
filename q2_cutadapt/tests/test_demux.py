@@ -476,6 +476,42 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_cut(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a, fwd
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'
+            '@id3\nCGTACGT\n+\nzzzzzzz\n',
+            # sample a, rev
+            '@id1\nGGGGTGCATG\n+\nzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATG\n+\nzzzzzzzzzz\n',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b, rev
+            '@id2\nTTTTTGCATG\n+\nzzzzzzzzzz\n'
+            '@id4\nTTTTTGCATG\n+\nzzzzzzzzzz\n'
+            '@id5\nTTTTTGCATG\n+\nzzzzzzzzzz\n', ]
+        exp_untrimmed = [
+            '@id6\nGGGACGTACGT\n+\nzzzzzzzzzzz\n',
+            '@id6\nTTTTTGCATG\n+\nzzzzzzzzzz\n'
+        ]
+
+        # Test a positive cut in forward sequences and a negative cut in
+        #  reverse at the same time
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=metadata,
+                                     forward_cut=1,
+                                     reverse_cut=-2)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_dual_index_success(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
