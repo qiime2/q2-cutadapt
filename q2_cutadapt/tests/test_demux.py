@@ -667,6 +667,18 @@ class TestDemuxPaired(TestPluginBase):
                                  reverse_barcodes=reverse_barcodes,
                                  mixed_orientation=True)
 
+    def test_mixed_different_cuts(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with self.assertRaises(ValueError):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=forward_barcodes,
+                                 forward_cut=4,
+                                 reverse_cut=2,
+                                 mixed_orientation=True)
+
 
 class TestDemuxUtilsSingleEnd(TestPluginBase):
     package = 'q2_cutadapt.tests'
