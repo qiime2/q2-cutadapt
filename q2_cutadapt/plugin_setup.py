@@ -265,7 +265,7 @@ plugin.methods.register_function(
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
-        'cut': Int % Range(None),
+        'cut': Int,
         'cores': Int % Range(1, None),
     },
     outputs=[
@@ -320,11 +320,12 @@ plugin.methods.register_function(
     parameters={
         'forward_barcodes': MetadataColumn[Categorical],
         'reverse_barcodes': MetadataColumn[Categorical],
+        'forward_cut': Int,
+        'reverse_cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
-        'cut': Int % Range(None),
         'mixed_orientation': Bool,
         'cores': Int % Range(1, None),
     },
@@ -341,6 +342,18 @@ plugin.methods.register_function(
                             'per-sample barcodes for the forward reads.',
         'reverse_barcodes': 'The sample metadata column listing the '
                             'per-sample barcodes for the reverse reads.',
+        'forward_cut': 'Remove the specified number of bases from the forward '
+                       'sequences. Bases are removed before demultiplexing. If '
+                       'a positive value is provided, bases are removed from '
+                       'the beginning of the sequences. If a negative value is '
+                       'provided, bases are removed from the end of the '
+                       'sequences',
+        'reverse_cut': 'Remove the specified number of bases from the reverse '
+                       'sequences. Bases are removed before demultiplexing. If '
+                       'a positive value is provided, bases are removed from '
+                       'the beginning of the sequences. If a negative value is '
+                       'provided, bases are removed from the end of the '
+                       'sequences',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
@@ -352,11 +365,6 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'cut': 'Remove the specified number of bases from the sequences. Bases'
-               'are removed before demultiplexing. If a positive value is'
-               'provided, bases are removed from the beginning of the '
-               'sequences. If a negative value is provided, bases are removed '
-               'from the end of the sequences',
         'mixed_orientation': 'Handle demultiplexing of mixed orientation '
                              'reads (i.e. when forward and reverse reads '
                              'coexist in the same file).',

@@ -40,7 +40,7 @@ def run_command(cmd, verbose=True):
 
 def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
                          untrimmed_dir_fmt, error_rate, minimum_length,
-                         cut=0, cores=1):
+                         forward_cut=0, reverse_cut=0, cores=1):
     cmd = ['cutadapt',
            '--front', 'file:%s' % barcode_fhs['fwd'].name,
            '--error-rate', str(error_rate),
@@ -58,7 +58,6 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
             cmd += [
                 '--pair-adapters',
                 '-G', 'file:%s' % barcode_fhs['rev'].name,
-                '-U', str(cut),
             ]
         cmd += [
             '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),
@@ -66,13 +65,14 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
             os.path.join(str(untrimmed_dir_fmt), 'reverse.fastq.gz'),
             str(seqs_dir_fmt.forward_sequences.view(FastqGzFormat)),
             str(seqs_dir_fmt.reverse_sequences.view(FastqGzFormat)),
+            '-U', str(reverse_cut),
             ]
     else:
         # SINGLE-END
         cmd += [str(seqs_dir_fmt.file.view(FastqGzFormat))]
 
     cmd += [
-        '-u', str(cut),
+        '-u', str(forward_cut),
         '-j', str(cores)
     ]
     return cmd
@@ -195,7 +195,8 @@ def _check_barcodes_uniqueness(
 
 
 def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-           error_tolerance, mux_fmt, batch_size, minimum_length, cut, cores):
+           error_tolerance, mux_fmt, batch_size, minimum_length, forward_cut,
+           reverse_cut, cores):
     fwd_barcode_name = forward_barcodes.name
     forward_barcodes = forward_barcodes.drop_missing_values()
     barcodes = forward_barcodes.to_series().to_frame()
@@ -224,7 +225,8 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
         cmd = _build_demux_command(previous_untrimmed, open_fhs,
                                    per_sample_sequences,
                                    current_untrimmed, error_tolerance,
-                                   minimum_length, cut, cores)
+                                   minimum_length, forward_cut, reverse_cut,
+                                   cores)
         run_command(cmd)
         open_fhs['fwd'].close()
         if reverse_barcodes is not None:
@@ -254,7 +256,7 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 
     untrimmed = _demux(
         seqs, per_sample_sequences, barcodes, None, error_rate, mux_fmt,
-        batch_size, minimum_length, cut, cores)
+        batch_size, minimum_length, cut, 0, cores)
 
     return per_sample_sequences, untrimmed
 
@@ -262,23 +264,32 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
+                 forward_cut: int = 0,
+                 reverse_cut: int = 0,
                  error_rate: float = 0.1,
                  batch_size: int = 0,
                  minimum_length: int = 1,
                  mixed_orientation: bool = False,
-                 cut: int = 0,
                  cores: int = 1) -> \
                     (CasavaOneEightSingleLanePerSampleDirFmt,
                      MultiplexedPairedEndBarcodeInSequenceDirFmt):
     _check_barcodes_uniqueness(
         forward_barcodes, reverse_barcodes, mixed_orientation)
 
+    if (
+        mixed_orientation
+        and forward_cut != reverse_cut
+    ):
+        raise ValueError("'forward_cut' and 'reverse_cut' need to be set to the"
+                         "same number when using the 'mixed_orientation' mode")
+
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
 
     untrimmed = _demux(
         seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
-        error_rate, mux_fmt, batch_size, minimum_length, cut, cores)
+        error_rate, mux_fmt, batch_size, minimum_length, forward_cut,
+        reverse_cut, cores)
 
     if mixed_orientation:
         fwd = untrimmed.forward_sequences.view(FastqGzFormat)
@@ -288,23 +299,12 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         # fwd -> rev && rev -> fwd
         remaining_seqs.forward_sequences.write_data(rev, FastqGzFormat)
         remaining_seqs.reverse_sequences.write_data(fwd, FastqGzFormat)
+        # Cuts have already been performed during the first demux pass, set
+        #  forward and reverse cut to 0
+        untrimmed = _demux(
+            remaining_seqs, per_sample_sequences, forward_barcodes,
+            reverse_barcodes, error_rate, mux_fmt, batch_size,
+            minimum_length, 0, 0, cores)
 
-        # we have two "cut" cases possible:
-        #  - no reverse barcode was provided and the cut was only applied to
-        #    the forward sequences
-        #  - reverse barcodes were provided and the cut was applied on both
-        #    sequences
-        if reverse_barcodes is None:
-            # apply cut to the new forward strand
-            untrimmed = _demux(
-                remaining_seqs, per_sample_sequences, forward_barcodes,
-                reverse_barcodes, error_rate, mux_fmt, batch_size,
-                minimum_length, cut, cores)
-        else:
-            # set cut to 0 as it was already applied to both strands
-            untrimmed = _demux(
-                remaining_seqs, per_sample_sequences, forward_barcodes,
-                reverse_barcodes, error_rate, mux_fmt, batch_size,
-                minimum_length, 0, cores)
 
     return per_sample_sequences, untrimmed
