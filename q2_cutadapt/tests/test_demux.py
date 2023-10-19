@@ -343,6 +343,34 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_cut_positive_overcut(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        exp = [
+            # sample a passed. However, as the first 'A' was removed, there is
+            #  a shift in the extracted sequence.
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in `test_typical`
+            '@id3\nCGTACGT\n+\nzzzzzzz\n',
+            # Sample b is empty as with the first two nucleotides cut, the
+            #  overlap between barcode and sequence is 2 (under the threshold
+            #  of 3)
+            '', ]
+        exp_untrimmed = (
+            '@id2\nCCACGTACGT\n+\nzzzzzzzzzz\n'
+            '@id4\nCCACGTACGT\n+\nzzzzzzzzzz\n'
+            '@id5\nCCACGTACGT\n+\nzzzzzzzzzz\n'
+            '@id6\nGGACGTACGT\n+\nzzzzzzzzzz\n'
+        )
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_single_fn(self.muxed_sequences, metadata, cut=2)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_cut_negative(self):
         metadata = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='Barcode',
