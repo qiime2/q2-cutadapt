@@ -318,31 +318,30 @@ class TestDemuxSingle(TestPluginBase):
 
     def test_cut(self):
         metadata = CategoricalMetadataColumn(
-            # The third barcode is meant to completely remove the only GGGG
-            # coded sequence
-            pd.Series(['AAAA', 'CCCC', 'GGGG'], name='Barcode',
-                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
-                      name='id')))
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
         exp = [
-            # sample a passed. However, as the first 'A' was removed, there was
+            # sample a passed. However, as the first 'A' was removed, there is
             #  a shift in the extracted sequence.
-            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in other tests
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in `test_typical`
             '@id3\nCGTACGT\n+\nzzzzzzz\n',
             # sample b passed because by default cutadapt allows matching
-            #  non-complete adapters to the targeted sequences
+            #  non-complete barcodes to the targeted sequences.
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
-            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample c passed for the same reason
-            '@id6\nACGTACGT\n+\nzzzzzzzz\n', ]
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n', ]
+        # Expected untrimmed sequence is the same as in `test_typical`, only
+        #  shortened of its first nucleotide.
+        exp_untrimmed = \
+            '@id6\nGGGACGTACGT\n+\nzzzzzzzzzzz\n'
 
         with redirected_stdio(stderr=os.devnull):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_single_fn(self.muxed_sequences, metadata, cut=1)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
-        # Rem: the first base was removed from all the sequences
-        self.assert_untrimmed_results('', obs_untrimmed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
 
 class TestDemuxPaired(TestPluginBase):
