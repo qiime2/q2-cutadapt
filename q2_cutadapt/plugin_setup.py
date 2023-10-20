@@ -348,7 +348,7 @@ plugin.methods.register_function(
                        'from the beginning of the sequences. If a negative '
                        'value is provided, bases are removed from the end of '
                        'the sequences',
-        'reverse_cut': 'Remove the specified number of bases from the forward '
+        'reverse_cut': 'Remove the specified number of bases from the reverse '
                        'sequences. Bases are removed before demultiplexing. '
                        'If a positive value is provided, bases are removed '
                        'from the beginning of the sequences. If a negative '
