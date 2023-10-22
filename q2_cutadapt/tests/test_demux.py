@@ -901,6 +901,8 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         self.assertEqual(exp_f, obs[15])
         exp_r = str(self.seqs_dir_fmt.reverse_sequences.view(FastqGzFormat))
         self.assertEqual(exp_r, obs[16])
+        self.assertEqual('0', obs[18])
+        self.assertEqual('0', obs[20])
 
     def test_build_dual_index_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta_f:
