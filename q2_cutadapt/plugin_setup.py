@@ -348,7 +348,7 @@ plugin.methods.register_function(
                        'from the beginning of the sequences. If a negative '
                        'value is provided, bases are removed from the end of '
                        'the sequences. If --p-mixed-orientation is set, then '
-                       'both --p-forward-cut and --p-reverse-cut must both be '
+                       'both --p-forward-cut and --p-reverse-cut must be '
                        'set to the same value.',
         'reverse_cut': 'Remove the specified number of bases from the reverse '
                        'sequences. Bases are removed before demultiplexing. '
@@ -356,7 +356,7 @@ plugin.methods.register_function(
                        'from the beginning of the sequences. If a negative '
                        'value is provided, bases are removed from the end of '
                        'the sequences. If --p-mixed-orientation is set, then '
-                       'both --p-forward-cut and --p-reverse-cut must both be '
+                       'both --p-forward-cut and --p-reverse-cut must be '
                        'set to the same value.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',

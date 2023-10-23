@@ -807,8 +807,8 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
             self.assertTrue(str(self.untrimmed_dir_fmt) in obs[10])
             self.assertEqual(str(self.seqs_dir_fmt.file.view(FastqGzFormat)),
                              obs[11])
-            self.assertTrue('0' in obs[13])
-            self.assertTrue('1' in obs[15])
+            self.assertTrue('0' in obs[13])  # fwd cut
+            self.assertTrue('1' in obs[15])  # cores
 
     def test_rename_files_single(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
@@ -901,8 +901,9 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
         self.assertEqual(exp_f, obs[15])
         exp_r = str(self.seqs_dir_fmt.reverse_sequences.view(FastqGzFormat))
         self.assertEqual(exp_r, obs[16])
-        self.assertEqual('0', obs[18])
-        self.assertEqual('0', obs[20])
+        self.assertEqual('0', obs[18])  # rev cut
+        self.assertEqual('0', obs[20])  # fwd cut
+        self.assertEqual('1', obs[22])  # cores
 
     def test_build_dual_index_demux_command(self):
         with tempfile.NamedTemporaryFile() as barcode_fasta_f:
