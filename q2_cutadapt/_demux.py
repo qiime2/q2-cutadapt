@@ -44,7 +44,7 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
                          anchor_forward=False, anchor_reverse=False,
                          cores=1):
     cmd = ['cutadapt',
-           '--front',
+           '-g',
            f'{"^" if anchor_forward else ""}file:{barcode_fhs["fwd"].name}',
            '--error-rate', str(error_rate),
            '--minimum-length', str(minimum_length),
