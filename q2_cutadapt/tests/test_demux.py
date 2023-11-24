@@ -801,6 +801,71 @@ class TestDemuxPaired(TestPluginBase):
         # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results(['', ''], obs_untrimmed_art)
 
+    def test_mixed_orientation_anchored(self):
+        # sample_a and sample_b have reads in both fwd and rev directions.
+        # sample_c only has reads in the fwd direction.
+        # sample_d only has reads in the rev direction.
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA', 'GGGG', 'TTTA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c',
+                                      'sample_d'], name='id')))
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'mixed-orientation/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'mixed-orientation/reverse.fastq.gz')
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     anchor_forward_barcode=True,
+                                     anchor_reverse_barcode=True,
+                                     mixed_orientation=True)
+        exp = [
+            # sample_a fwd
+            '@id1\nACGTACGT\n+\nyyyyyyyy\n'
+            '@id3\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_a rev
+            '@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_b fwd is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+            # sample_b rev is empty for the same reason
+            '',
+            # sample_c fwd
+            '@id5\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_c rev
+            '@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_d fwd is empty cf. sample_b
+            '',
+            # sample_d rev is empty cf. sample_b
+            '',
+        ]
+        exp_untrimmed = [
+            '@id2\nCCCCACGTACGT\n+\nyyyyyyyyyyyy\n'
+            '@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id6\nTTTTACGTACGT\n+\nyyyyyyyyyyyy\n',
+            '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id4\nCCCCACGTACGT\n+\nyyyyyyyyyyyy\n'
+            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+        ]
+
+        # We want to be sure that the validation is 100%, not just `min`,
+        obs_demuxed_art.validate(level='max')
+        # checkpoint assertion for the above `validate` - nothing should fail
+        self.assertTrue(True)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
+
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_dual_index_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC', 'ACGT'], name='ForwardBarcode',
