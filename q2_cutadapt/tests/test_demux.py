@@ -419,6 +419,32 @@ class TestDemuxSingle(TestPluginBase):
                                       '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
 
+    def test_anchored_cut(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a passed. However, as the first 'A' was removed, there was
+            #  a shift in the extracted sequence.
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in other tests
+            '@id3\nCGTACGT\n+\nzzzzzzz\n',
+            # sample b is empty because the removal of the first base only left
+            #  'CCC' from the original barcode.
+            '',
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = self.demux_single_fn(
+                self.muxed_sequences, metadata, cut=1, anchor_barcode=True)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        # Rem: the first base was removed from all the sequences
+        self.assert_untrimmed_results('@id2\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id4\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id5\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id6\nGGGACGTACGT\n+\nzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
