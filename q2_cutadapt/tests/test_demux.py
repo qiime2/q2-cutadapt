@@ -396,6 +396,29 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_anchored(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = self.demux_single_fn(
+                self.muxed_sequences, metadata, anchor_barcode=True)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results('@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -801,6 +824,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                                        0.1,
                                        2)
             self.assertTrue(barcode_fasta.name in obs[2])
+            self.assertTrue('^file' not in obs[2])  # not anchored
             self.assertTrue('0.1' in obs[4])
             self.assertTrue('2' in obs[6])
             self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])
@@ -809,6 +833,17 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                              obs[11])
             self.assertTrue('0' in obs[13])  # fwd cut
             self.assertTrue('1' in obs[15])  # cores
+
+        # Check that '^' is added before 'file' when adapters are anchored
+        with tempfile.NamedTemporaryFile() as barcode_fasta:
+            obs = _build_demux_command(self.seqs_dir_fmt,
+                                       {'fwd': barcode_fasta, 'rev': None},
+                                       self.per_sample_dir_fmt,
+                                       self.untrimmed_dir_fmt,
+                                       0.1,
+                                       2,
+                                       anchor_forward=True)
+            self.assertTrue('^file' in obs[2])
 
     def test_rename_files_single(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
@@ -890,7 +925,7 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
                                        self.untrimmed_dir_fmt,
                                        0.1,
                                        2)
-            self.assertTrue(barcode_fasta.name in obs[2])
+        self.assertTrue(barcode_fasta.name in obs[2])
         self.assertTrue('0.1' in obs[4])
         self.assertTrue('2' in obs[6])
         self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])  # fwd
