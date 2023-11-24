@@ -561,6 +561,46 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_anchored(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a, fwd
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample b, fwd is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+            # sample b, rev is empty for the same reason
+            '', ]
+
+        exp_untrimmed = [
+                '@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                '@id2\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id4\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            ]
+
+        # Test a positive cut in forward sequences and a negative cut in
+        #  reverse at the same time
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=metadata,
+                                     anchor_forward_barcode=True,
+                                     anchor_reverse_barcode=True)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_dual_index_success(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
