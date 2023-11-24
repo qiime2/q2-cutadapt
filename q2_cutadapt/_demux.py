@@ -62,7 +62,7 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
                 '--pair-adapters',
                 '-G',
                 # pylint: disable-next=line-too-long  # Increase readability
-                f'{"^" if anchor_reverse else ""}file:{barcode_fhs["rev"].name}',
+                f'{"^" if anchor_reverse else ""}file:{barcode_fhs["rev"].name}',  # noqa: E501
             ]
         cmd += [
             '-p', os.path.join(str(per_sample_dir_fmt), '{name}.2.fastq.gz'),

@@ -286,7 +286,8 @@ plugin.methods.register_function(
                       '`demux emp-*`, which is 0.0 (=0%).',
         'anchor_barcode': 'Anchor the barcode. An anchored barcode is '
                           'expected to occur in full length at the beginning '
-                          'of the sequence. Can fasten demultiplexing if used.',
+                          'of the sequence. Can fasten demultiplexing if '
+                          'used.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
                       'concurrently. Demultiplexing in smaller batches will '
                       'yield the same result with marginal speed loss, and '
