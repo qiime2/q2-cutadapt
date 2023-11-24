@@ -291,7 +291,16 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
     ):
         raise ValueError("'forward_cut' and 'reverse_cut' need to be set to "
                          "the same number when using the 'mixed_orientation' "
-                         "mode")
+                         "mode.")
+
+    if (
+        mixed_orientation
+        and anchor_forward_barcode != anchor_reverse_barcode
+    ):
+        raise ValueError(
+            "'anchor_forward_barcode' and 'anchor_reverse_barcode' need to be "
+            "set to the same value when using the 'mixed_orientation' mode."
+        )
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
