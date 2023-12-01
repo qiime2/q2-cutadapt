@@ -286,6 +286,13 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
         forward_barcodes, reverse_barcodes, mixed_orientation)
 
     if (
+        not mixed_orientation
+        and anchor_reverse_barcode and (reverse_barcodes is None)
+    ):
+        raise ValueError("A reverse barcode needs to be provided in order to "
+                         "anchor the reverse barcode.")
+
+    if (
         mixed_orientation
         and forward_cut != reverse_cut
     ):
