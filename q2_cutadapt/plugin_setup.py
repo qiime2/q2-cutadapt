@@ -284,10 +284,10 @@ plugin.methods.register_function(
                       'allowable error rate. The default value specified by '
                       'cutadapt is 0.1 (=10%), which is greater than '
                       '`demux emp-*`, which is 0.0 (=0%).',
-        'anchor_barcode': 'Anchor the barcode. An anchored barcode is '
+        'anchor_barcode': 'Anchor the barcode. The barcode is then '
                           'expected to occur in full length at the beginning '
-                          'of the sequence. Can fasten demultiplexing if '
-                          'used.',
+                          '(5\' end) of the sequence. Can speed up demultiplexing '
+                          'if used.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
                       'concurrently. Demultiplexing in smaller batches will '
                       'yield the same result with marginal speed loss, and '
@@ -365,14 +365,14 @@ plugin.methods.register_function(
                        'the sequences. If --p-mixed-orientation is set, then '
                        'both --p-forward-cut and --p-reverse-cut must be '
                        'set to the same value.',
-        'anchor_forward_barcode': 'Anchor the forward barcode. An anchored '
-                                  'barcode is expected to occur in full '
-                                  'length at the beginning of the sequence. '
-                                  'Can fasten demultiplexing if used.',
-        'anchor_reverse_barcode': 'Anchor the reverse barcode. An anchored '
-                                  'barcode is expected to occur in full '
-                                  'length at the beginning of the sequence. '
-                                  'Can fasten demultiplexing if used.',
+        'anchor_forward_barcode': 'Anchor the forward barcode. The '
+                                  'barcode is then expected to occur in full '
+                                  'length at the beginning (5\' end) of the forward '
+                                  'sequence. Can speed up demultiplexing if used.',
+        'anchor_reverse_barcode': 'Anchor the reverse barcode. The '
+                                  'barcode is then expected to occur in full '
+                                  'length at the beginning (5\' end) of the reverse '
+                                  'sequence. Can speed up demultiplexing if used.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
