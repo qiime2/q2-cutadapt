@@ -268,22 +268,13 @@ def demux_single(seqs: MultiplexedSingleEndBarcodeInSequenceDirFmt,
     return per_sample_sequences, untrimmed
 
 
-def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
-                 forward_barcodes: qiime2.CategoricalMetadataColumn,
-                 reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
-                 forward_cut: int = 0,
-                 reverse_cut: int = 0,
-                 anchor_forward_barcode: bool = False,
-                 anchor_reverse_barcode: bool = False,
-                 error_rate: float = 0.1,
-                 batch_size: int = 0,
-                 minimum_length: int = 1,
-                 mixed_orientation: bool = False,
-                 cores: int = 1) -> \
-                    (CasavaOneEightSingleLanePerSampleDirFmt,
-                     MultiplexedPairedEndBarcodeInSequenceDirFmt):
-    _check_barcodes_uniqueness(
-        forward_barcodes, reverse_barcodes, mixed_orientation)
+def _check_paired_requirements(loc):
+    mixed_orientation = loc.get("mixed_orientation", None)
+    forward_cut = loc.get("forward_cut", 0)
+    reverse_cut = loc.get("reverse_cut", 0)
+    reverse_barcodes = loc.get("reverse_barcodes", None)
+    anchor_forward_barcode = loc.get("anchor_forward_barcode", False)
+    anchor_reverse_barcode = loc.get("anchor_reverse_barcode", False)
 
     if (
         not mixed_orientation
@@ -308,6 +299,26 @@ def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
             "'anchor_forward_barcode' and 'anchor_reverse_barcode' need to be "
             "set to the same value when using the 'mixed_orientation' mode."
         )
+
+
+
+def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
+                 forward_barcodes: qiime2.CategoricalMetadataColumn,
+                 reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
+                 forward_cut: int = 0,
+                 reverse_cut: int = 0,
+                 anchor_forward_barcode: bool = False,
+                 anchor_reverse_barcode: bool = False,
+                 error_rate: float = 0.1,
+                 batch_size: int = 0,
+                 minimum_length: int = 1,
+                 mixed_orientation: bool = False,
+                 cores: int = 1) -> \
+                    (CasavaOneEightSingleLanePerSampleDirFmt,
+                     MultiplexedPairedEndBarcodeInSequenceDirFmt):
+    _check_barcodes_uniqueness(
+        forward_barcodes, reverse_barcodes, mixed_orientation)
+    _check_paired_requirements(locals())
 
     per_sample_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     mux_fmt = MultiplexedPairedEndBarcodeInSequenceDirFmt
