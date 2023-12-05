@@ -263,6 +263,7 @@ plugin.methods.register_function(
         'barcodes': MetadataColumn[Categorical],
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
+        'anchor_barcode': Bool,
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
         'cut': Int,
@@ -283,6 +284,10 @@ plugin.methods.register_function(
                       'allowable error rate. The default value specified by '
                       'cutadapt is 0.1 (=10%), which is greater than '
                       '`demux emp-*`, which is 0.0 (=0%).',
+        'anchor_barcode': 'Anchor the barcode. The barcode is then '
+                          'expected to occur in full length at the beginning '
+                          '(5\' end) of the sequence. Can speed up '
+                          'demultiplexing if used.',
         'batch_size': 'The number of samples cutadapt demultiplexes '
                       'concurrently. Demultiplexing in smaller batches will '
                       'yield the same result with marginal speed loss, and '
@@ -292,11 +297,11 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'cut': 'Remove the specified number of bases from the sequences. Bases'
-               'are removed before demultiplexing. If a positive value is'
-               'provided, bases are removed from the beginning of the '
+        'cut': 'Remove the specified number of bases from the sequences. '
+               'Bases are removed before demultiplexing. If a positive value '
+               'is provided, bases are removed from the beginning of the '
                'sequences. If a negative value is provided, bases are removed '
-               'from the end of the sequences',
+               'from the end of the sequences.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
@@ -324,6 +329,8 @@ plugin.methods.register_function(
         'reverse_cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
+        'anchor_forward_barcode': Bool,
+        'anchor_reverse_barcode': Bool,
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
         'mixed_orientation': Bool,
@@ -358,6 +365,16 @@ plugin.methods.register_function(
                        'the sequences. If --p-mixed-orientation is set, then '
                        'both --p-forward-cut and --p-reverse-cut must be '
                        'set to the same value.',
+        'anchor_forward_barcode': 'Anchor the forward barcode. The '
+                                  'barcode is then expected to occur in full '
+                                  'length at the beginning (5\' end) of the '
+                                  'forward sequence. Can speed up '
+                                  'demultiplexing if used.',
+        'anchor_reverse_barcode': 'Anchor the reverse barcode. The '
+                                  'barcode is then expected to occur in full '
+                                  'length at the beginning (5\' end) of the '
+                                  'reverse sequence. Can speed up '
+                                  'demultiplexing if used.',
         'error_rate': 'The level of error tolerance, specified as the maximum '
                       'allowable error rate.',
         'batch_size': 'The number of samples cutadapt demultiplexes '

@@ -396,6 +396,55 @@ class TestDemuxSingle(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_anchored(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = self.demux_single_fn(
+                self.muxed_sequences, metadata, anchor_barcode=True)
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results('@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                                      '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
+
+    def test_anchored_cut(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a passed. However, as the first 'A' was removed, there was
+            #  a shift in the extracted sequence.
+            '@id1\nCGTACGT\n+\nzzzzzzz\n'  # vs ACGTACGT in other tests
+            '@id3\nCGTACGT\n+\nzzzzzzz\n',
+            # sample b is empty because the removal of the first base only left
+            #  'CCC' from the original barcode.
+            '',
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = self.demux_single_fn(
+                self.muxed_sequences, metadata, cut=1, anchor_barcode=True)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        # Rem: the first base was removed from all the sequences
+        self.assert_untrimmed_results('@id2\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id4\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id5\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
+                                      '@id6\nGGGACGTACGT\n+\nzzzzzzzzzzz\n',
+                                      obs_untrimmed_art)
+
 
 class TestDemuxPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -512,6 +561,45 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
 
+    def test_anchored(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+        exp = [
+            # sample a, fwd
+            '@id1\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id3\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample a, rev
+            '@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample b, fwd is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+            # sample b, rev is empty for the same reason
+            '', ]
+
+        exp_untrimmed = [
+                '@id2\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id4\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id5\nCCCCACGTACGT\n+\nzzzzzzzzzzzz\n'
+                '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+                '@id2\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id4\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id5\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+                '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            ]
+
+        # Test a positive cut in forward sequences and a negative cut in
+        #  reverse at the same time
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=metadata,
+                                     anchor_forward_barcode=True)
+
+        self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_dual_index_success(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC'], name='ForwardBarcode',
@@ -530,7 +618,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample a, rev
+            # sample b, rev
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
@@ -546,6 +634,65 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_dual_index_anchored(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'GGGA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGT', 'TTTT', 'TTTT'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
+        exp = [
+            # sample a, fwd is empty because of reverse anchoring
+            '',
+            # sample a, rev is empty because of reverse anchoring
+            '',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b, rev
+            '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id5\nTGCATGCA\n+\nzzzzzzzz\n',
+            # sample c, fwd is empty because of forward anchoring,
+            '',
+            # sample c, rev is empty because of forward anchoring,
+            '',
+        ]
+        exp_untrimmed = [
+            '@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+            '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+            '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+            '@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     reverse_barcodes=reverse_barcodes,
+                                     anchor_forward_barcode=True,
+                                     anchor_reverse_barcode=True)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_dual_index_anchor_fail_no_reverse(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with self.assertRaises(ValueError):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=metadata,
+                                 anchor_forward_barcode=True,
+                                 anchor_reverse_barcode=True)
 
     def test_dual_index_mixed_orientation_success(self):
         forward_barcodes = CategoricalMetadataColumn(
@@ -582,7 +729,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample a, rev
+            # sample b, rev
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
@@ -712,6 +859,71 @@ class TestDemuxPaired(TestPluginBase):
         # Everything should match, so untrimmed should be empty
         self.assert_untrimmed_results(['', ''], obs_untrimmed_art)
 
+    def test_mixed_orientation_anchored(self):
+        # sample_a and sample_b have reads in both fwd and rev directions.
+        # sample_c only has reads in the fwd direction.
+        # sample_d only has reads in the rev direction.
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA', 'GGGG', 'TTTA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c',
+                                      'sample_d'], name='id')))
+        mixed_orientation_sequences_f_fp = self.get_data_path(
+            'mixed-orientation/forward.fastq.gz')
+        mixed_orientation_sequences_r_fp = self.get_data_path(
+            'mixed-orientation/reverse.fastq.gz')
+        with tempfile.TemporaryDirectory() as temp:
+            shutil.copy(mixed_orientation_sequences_f_fp, temp)
+            shutil.copy(mixed_orientation_sequences_r_fp, temp)
+            mixed_orientation_sequences = Artifact.import_data(
+                'MultiplexedPairedEndBarcodeInSequence', temp)
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(mixed_orientation_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     anchor_forward_barcode=True,
+                                     anchor_reverse_barcode=True,
+                                     mixed_orientation=True)
+        exp = [
+            # sample_a fwd
+            '@id1\nACGTACGT\n+\nyyyyyyyy\n'
+            '@id3\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_a rev
+            '@id1\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_b fwd is empty because the first 'C' from the sequence is
+            #  not in the barcode (sequence is 'CCCCACGTACGT')
+            '',
+            # sample_b rev is empty for the same reason
+            '',
+            # sample_c fwd
+            '@id5\nACGTACGT\n+\nyyyyyyyy\n',
+            # sample_c rev
+            '@id5\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n',
+            # sample_d fwd is empty cf. sample_b
+            '',
+            # sample_d rev is empty cf. sample_b
+            '',
+        ]
+        exp_untrimmed = [
+            '@id2\nCCCCACGTACGT\n+\nyyyyyyyyyyyy\n'
+            '@id4\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id6\nTTTTACGTACGT\n+\nyyyyyyyyyyyy\n',
+            '@id2\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id4\nCCCCACGTACGT\n+\nyyyyyyyyyyyy\n'
+            '@id6\nTGCATGCATGCA\n+\nzzzzzzzzzzzz\n'
+        ]
+
+        # We want to be sure that the validation is 100%, not just `min`,
+        obs_demuxed_art.validate(level='max')
+        # checkpoint assertion for the above `validate` - nothing should fail
+        self.assertTrue(True)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
+
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
     def test_dual_index_mismatched_barcodes(self):
         forward_barcodes = CategoricalMetadataColumn(
             pd.Series(['AAAA', 'CCCC', 'ACGT'], name='ForwardBarcode',
@@ -801,6 +1013,7 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                                        0.1,
                                        2)
             self.assertTrue(barcode_fasta.name in obs[2])
+            self.assertTrue('^file' not in obs[2])  # not anchored
             self.assertTrue('0.1' in obs[4])
             self.assertTrue('2' in obs[6])
             self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])
@@ -809,6 +1022,17 @@ class TestDemuxUtilsSingleEnd(TestPluginBase):
                              obs[11])
             self.assertTrue('0' in obs[13])  # fwd cut
             self.assertTrue('1' in obs[15])  # cores
+
+        # Check that '^' is added before 'file' when adapters are anchored
+        with tempfile.NamedTemporaryFile() as barcode_fasta:
+            obs = _build_demux_command(self.seqs_dir_fmt,
+                                       {'fwd': barcode_fasta, 'rev': None},
+                                       self.per_sample_dir_fmt,
+                                       self.untrimmed_dir_fmt,
+                                       0.1,
+                                       2,
+                                       anchor_forward=True)
+            self.assertTrue('^file' in obs[2])
 
     def test_rename_files_single(self):
         for fn in ['sample_a.1.fastq.gz', 'sample_b.1.fastq.gz']:
@@ -890,7 +1114,7 @@ class TestDemuxUtilsPairedEnd(TestPluginBase):
                                        self.untrimmed_dir_fmt,
                                        0.1,
                                        2)
-            self.assertTrue(barcode_fasta.name in obs[2])
+        self.assertTrue(barcode_fasta.name in obs[2])
         self.assertTrue('0.1' in obs[4])
         self.assertTrue('2' in obs[6])
         self.assertTrue(str(self.per_sample_dir_fmt) in obs[8])  # fwd
