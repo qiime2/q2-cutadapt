@@ -300,7 +300,6 @@ def _check_paired_requirements(loc):
         )
 
 
-
 def demux_paired(seqs: MultiplexedPairedEndBarcodeInSequenceDirFmt,
                  forward_barcodes: qiime2.CategoricalMetadataColumn,
                  reverse_barcodes: qiime2.CategoricalMetadataColumn = None,
