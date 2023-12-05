@@ -61,7 +61,6 @@ def _build_demux_command(seqs_dir_fmt, barcode_fhs, per_sample_dir_fmt,
             cmd += [
                 '--pair-adapters',
                 '-G',
-                # pylint: disable-next=line-too-long  # Increase readability
                 f'{"^" if anchor_reverse else ""}file:{barcode_fhs["rev"].name}',  # noqa: E501
             ]
         cmd += [
