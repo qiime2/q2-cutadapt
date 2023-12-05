@@ -297,11 +297,11 @@ plugin.methods.register_function(
                           'the cutadapt default of 0 has been overridden, '
                           'because that value produces empty sequence '
                           'records.',
-        'cut': 'Remove the specified number of bases from the sequences. Bases'
-               'are removed before demultiplexing. If a positive value is'
-               'provided, bases are removed from the beginning of the '
+        'cut': 'Remove the specified number of bases from the sequences. '
+               'Bases are removed before demultiplexing. If a positive value '
+               'is provided, bases are removed from the beginning of the '
                'sequences. If a negative value is provided, bases are removed '
-               'from the end of the sequences',
+               'from the end of the sequences.',
     },
     output_descriptions={
         'per_sample_sequences': 'The resulting demultiplexed sequences.',
