@@ -595,8 +595,7 @@ class TestDemuxPaired(TestPluginBase):
             obs_demuxed_art, obs_untrimmed_art = \
                 self.demux_paired_fn(self.muxed_sequences,
                                      forward_barcodes=metadata,
-                                     anchor_forward_barcode=True,
-                                     anchor_reverse_barcode=True)
+                                     anchor_forward_barcode=True)
 
         self.assert_demux_results(metadata.to_series(), exp, obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
@@ -635,6 +634,65 @@ class TestDemuxPaired(TestPluginBase):
         self.assert_demux_results(forward_barcodes.to_series(), exp,
                                   obs_demuxed_art)
         self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_dual_index_anchored(self):
+        forward_barcodes = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCC', 'GGGA'], name='ForwardBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
+        reverse_barcodes = CategoricalMetadataColumn(
+            pd.Series(['GGGT', 'TTTT', 'TTTT'], name='ReverseBarcode',
+                      index=pd.Index(['sample_a', 'sample_b', 'sample_c'],
+                                     name='id')))
+        exp = [
+            # sample a, fwd is empty because of reverse anchoring
+            '',
+            # sample a, rev is empty because of reverse anchoring
+            '',
+            # sample b, fwd
+            '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+            '@id5\nACGTACGT\n+\nzzzzzzzz\n',
+            # sample b, rev
+            '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
+            '@id5\nTGCATGCA\n+\nzzzzzzzz\n',
+            # sample c, fwd is empty because of forward anchoring,
+            '',
+            # sample c, rev is empty because of forward anchoring,
+            '',
+        ]
+        exp_untrimmed = [
+            '@id1\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+            '@id3\nAAAAACGTACGT\n+\nzzzzzzzzzzzz\n'
+            '@id6\nGGGGACGTACGT\n+\nzzzzzzzzzzzz\n',
+            '@id1\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id3\nGGGGTGCATGCA\n+\nzzzzzzzzzzzz\n'
+            '@id6\nTTTTTGCATGCA\n+\nzzzzzzzzzzzz\n'
+        ]
+
+        with redirected_stdio(stderr=os.devnull):
+            obs_demuxed_art, obs_untrimmed_art = \
+                self.demux_paired_fn(self.muxed_sequences,
+                                     forward_barcodes=forward_barcodes,
+                                     reverse_barcodes=reverse_barcodes,
+                                     anchor_forward_barcode=True,
+                                     anchor_reverse_barcode=True)
+
+        self.assert_demux_results(forward_barcodes.to_series(), exp,
+                                  obs_demuxed_art)
+        self.assert_untrimmed_results(exp_untrimmed, obs_untrimmed_art)
+
+    def test_dual_index_anchor_fail_no_reverse(self):
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAA', 'CCCA'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with self.assertRaises(ValueError):
+            self.demux_paired_fn(self.muxed_sequences,
+                                 forward_barcodes=metadata,
+                                 anchor_forward_barcode=True,
+                                 anchor_reverse_barcode=True)
 
     def test_dual_index_mixed_orientation_success(self):
         forward_barcodes = CategoricalMetadataColumn(
