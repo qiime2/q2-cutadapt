@@ -618,7 +618,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample a, rev
+            # sample b, rev
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
@@ -729,7 +729,7 @@ class TestDemuxPaired(TestPluginBase):
             '@id2\nACGTACGT\n+\nzzzzzzzz\n'
             '@id4\nACGTACGT\n+\nzzzzzzzz\n'
             '@id5\nACGTACGT\n+\nzzzzzzzz\n',
-            # sample a, rev
+            # sample b, rev
             '@id2\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id4\nTGCATGCA\n+\nzzzzzzzz\n'
             '@id5\nTGCATGCA\n+\nzzzzzzzz\n', ]
