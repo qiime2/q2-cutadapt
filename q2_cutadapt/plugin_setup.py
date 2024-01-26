@@ -17,6 +17,7 @@ from qiime2.plugin import (
     List,
     Str,
     Bool,
+    Threads,
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -53,7 +54,7 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[SequencesWithQuality],
     },
     parameters={
-        'cores': Int % Range(1, None),
+        'cores': Threads,
         'adapter': List[Str],
         'front': List[Str],
         'anywhere': List[Str],
@@ -144,7 +145,7 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[PairedEndSequencesWithQuality],
     },
     parameters={
-        'cores': Int % Range(1, None),
+        'cores': Threads,
         'adapter_f': List[Str],
         'front_f': List[Str],
         'anywhere_f': List[Str],
@@ -267,7 +268,7 @@ plugin.methods.register_function(
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
         'cut': Int,
-        'cores': Int % Range(1, None),
+        'cores': Threads,
     },
     outputs=[
         ('per_sample_sequences', SampleData[SequencesWithQuality]),
@@ -334,7 +335,7 @@ plugin.methods.register_function(
         'batch_size': Int % Range(0, None),
         'minimum_length': Int % Range(1, None),
         'mixed_orientation': Bool,
-        'cores': Int % Range(1, None),
+        'cores': Threads,
     },
     outputs=[
         ('per_sample_sequences', SampleData[PairedEndSequencesWithQuality]),
