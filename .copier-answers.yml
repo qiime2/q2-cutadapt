@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: dfb0404
+_src_path: https://github.com/qiime2/q2-setup-template.git
+module_name: cutadapt
+plugin_name: q2_cutadapt
+plugin_scripts: null
+project_author_email: matthewrdillon@gmail.com
+project_author_name: Matthew Ryan Dillon
+project_description: null
+project_name: q2-cutadapt
+project_urls_homepage: https://github.com/qiime2/q2-cutadapt
+project_urls_repository: https://github.com/qiime2/q2-cutadapt
