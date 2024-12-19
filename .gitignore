@@ -69,3 +69,6 @@ target/
 
 .DS_store
 .history/
+# Version file from versioningit
+_version.py
+
