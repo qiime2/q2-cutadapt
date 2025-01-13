@@ -7,26 +7,15 @@
 # ----------------------------------------------------------------------------
 
 import os
-import subprocess
 import pandas as pd
+
+from qiime2.sdk.util import run_commands
 
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
 )
-
-
-def run_commands(cmds, verbose=True):
-    print('Running external command line application. This may print '
-          'messages to stdout and/or stderr.')
-    print('The commands to be run are below. These commands cannot '
-          'be manually re-run as they will depend on temporary files that '
-          'no longer exist.')
-    for cmd in cmds:
-        print('\nCommand:', end=' ')
-        print(' '.join(cmd), end='\n\n')
-        subprocess.run(cmd, check=True)
 
 
 _trim_defaults = {
