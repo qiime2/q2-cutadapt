@@ -9,7 +9,7 @@
 import os
 import pandas as pd
 
-from qiime2.sdk.util import run_commands
+from qiime2.plugin.util import run_commands
 
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
