@@ -17,8 +17,8 @@ requirements:
   - pigz
   - pandas {{ pandas }}
   - numpy
-  - qiime2 {{ qiime2_epoch }}.*
-  - q2-types {{ qiime2_epoch }}.*
+  - qiime2 >={{ qiime2 }}
+  - q2-types >={{ q2_types }}
   build:
   - python {{ python }}
   - setuptools
