@@ -8,6 +8,7 @@
 
 import gzip
 import itertools
+import inspect
 import os
 import pathlib
 import shutil
@@ -444,6 +445,76 @@ class TestDemuxSingle(TestPluginBase):
                                       '@id5\nCCCACGTACGT\n+\nzzzzzzzzzzz\n'
                                       '@id6\nGGGACGTACGT\n+\nzzzzzzzzzzz\n',
                                       obs_untrimmed_art)
+
+    def test_batching_does_not_overcut(self):
+        '''
+        Tests the resolution of a bug where two or more rounds of batching
+        resulted in multiple cuts being perfomed on the same sequences.
+        '''
+        metadata = CategoricalMetadataColumn(
+            pd.Series(['AAAC', 'CCAC'], name='Barcode',
+                      index=pd.Index(['sample_a', 'sample_b'], name='id')))
+
+        with redirected_stdio(stderr=os.devnull):
+            demux, untrimmed = self.demux_single_fn(
+                self.muxed_sequences, metadata, cut=2, batch_size=1
+            )
+
+        # confirm untrimmed has only two bases cut, demux have two bases cut,
+        # barcodes removed and properly demuxed, although two rounds of
+        # batching occurred
+        self.assert_untrimmed_results(
+            '@id6\nGGACGTACGT\n+\nzzzzzzzzzz\n', untrimmed
+        )
+
+        demux_exp = [
+            # sample_a
+            '@id1\nGTACGT\n+\nzzzzzz\n'
+            '@id3\nGTACGT\n+\nzzzzzz\n',
+
+            # sample_b
+            '@id2\nGTACGT\n+\nzzzzzz\n'
+            '@id4\nGTACGT\n+\nzzzzzz\n'
+            '@id5\nGTACGT\n+\nzzzzzz\n'
+        ]
+        self.assert_demux_results(metadata.to_series(), demux_exp, demux)
+
+        # this mimics the pre-bugfix behavior where the `forward_cut` parameter
+        # kept the same value for each batch and cut in each batch
+        def patched_build_demux(*args, **kwargs):
+            sig = inspect.signature(_build_demux_command)
+            bound = sig.bind_partial(*args, **kwargs)
+            bound.arguments['forward_cut'] = 2
+
+            return _build_demux_command(*bound.args, **bound.kwargs)
+
+        with unittest.mock.patch(
+            'q2_cutadapt._demux._build_demux_command', patched_build_demux
+        ), redirected_stdio(stderr=os.devnull):
+            demux, untrimmed = self.demux_single_fn(
+                self.muxed_sequences, metadata, cut=2, batch_size=1
+            )
+
+            # untrimmed ended up with sample_b sequences because they were
+            # demuxed in second batch and overcut
+            self.assert_untrimmed_results(
+                '@id2\nACGTACGT\n+\nzzzzzzzz\n'
+                '@id4\nACGTACGT\n+\nzzzzzzzz\n'
+                '@id5\nACGTACGT\n+\nzzzzzzzz\n'
+                '@id6\nACGTACGT\n+\nzzzzzzzz\n',
+                untrimmed
+            )
+
+            # demux still has sample_a because it was demuxed in first batch
+            demux_exp = [
+                # sample_a
+                '@id1\nGTACGT\n+\nzzzzzz\n'
+                '@id3\nGTACGT\n+\nzzzzzz\n',
+
+                # sample_b
+                ''
+            ]
+            self.assert_demux_results(metadata.to_series(), demux_exp, demux)
 
 
 class TestDemuxPaired(TestPluginBase):

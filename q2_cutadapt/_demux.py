@@ -217,7 +217,7 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
     batch_size = n_samples if batch_size == 0 else batch_size
     batches = np.arange(n_samples) // batch_size
     previous_untrimmed = seqs
-    for _, barcode_batch in barcodes.groupby(batches):
+    for batch_number, barcode_batch in barcodes.groupby(batches):
         current_untrimmed = mux_fmt()
         _write_empty_fastq_to_mux_barcode_in_seq_fmt(current_untrimmed)
         open_fhs = {'fwd': tempfile.NamedTemporaryFile(), 'rev': None}
@@ -226,6 +226,12 @@ def _demux(seqs, per_sample_sequences, forward_barcodes, reverse_barcodes,
             open_fhs['rev'] = tempfile.NamedTemporaryFile()
             _write_barcode_fasta(barcode_batch[rev_barcode_name],
                                  open_fhs['rev'])
+
+        # don't re-cut the untrimmed files after the first batch
+        if batch_number > 0:
+            forward_cut = 0
+            reverse_cut = 0
+
         cmd = _build_demux_command(
             previous_untrimmed, open_fhs, per_sample_sequences,
             current_untrimmed, error_tolerance, minimum_length, forward_cut,
