@@ -184,6 +184,10 @@ class TestTrimSingle(TestPluginBase):
                     self.assertTrue(record[0].strip() != maxn_seq_id)
 
     def test_nextseq_single(self):
+        '''
+        Tests that cutadapt removes poly-G tails for single end reads when
+        passed `nextseq_trim`.
+        '''
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-quality')
@@ -207,6 +211,10 @@ class TestTrimSingle(TestPluginBase):
         self.assertEqual(sequence, expected_sequence)
 
     def test_nextseq_continues(self):
+        '''
+        Tests that cutadapt continues trimming low quality reads after the
+        poly-G tail when passed `nextseq_trim`.
+        '''
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-continue')
@@ -228,6 +236,10 @@ class TestTrimSingle(TestPluginBase):
         self.assertEqual(sequence, expected_sequence)
 
     def test_nextseq_trims_5end(self):
+        '''
+        Tests that cutadapt trims low quality reads from the 5 prime end when
+        passed `nextseq_trim` and `quality_cutoff_5end`,.
+        '''
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-5end')
@@ -249,6 +261,10 @@ class TestTrimSingle(TestPluginBase):
         self.assertEqual(sequence, expected_sequence)
 
     def test_nextseq_parameter_default(self):
+        '''
+        Tests that cutadapt does not trim any reads when passed only the
+        default parameters.
+        '''
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-quality')
@@ -273,6 +289,10 @@ class TestTrimSingle(TestPluginBase):
         self.assertEqual(sequence, expected_sequence)
 
     def test_warns_nextseq_and_3end(self):
+        '''
+        Tests that a `RachisWarning` is raised when passing both `nextseq_trim`
+        and `quality_cutoff_3end` as these do essentially the same thing.
+        '''
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-quality')
@@ -475,6 +495,10 @@ class TestTrimPaired(TestPluginBase):
             exp_fh.close(), obs_fh.close()
 
     def test_nextseq_paired(self):
+        '''
+        Tests that cutadapt removes poly-G tails for paired end reads when
+        being passed `nextseq_trim`.
+        '''
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
             self.get_data_path('paired-nextseq-quality')
@@ -493,7 +517,7 @@ class TestTrimPaired(TestPluginBase):
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
-        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))
+        fastq_fp = sorted(list(Path(trimmed_format.path).glob('*.fastq.gz')))
         index = 0
         for file in fastq_fp:
             with gzip.open(file, 'rt') as f:
