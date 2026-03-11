@@ -73,6 +73,8 @@ plugin.methods.register_function(
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
         'cores': Threads,
+        'two_color': Bool,
+        'nextseq_trim': Int,
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -156,6 +158,13 @@ plugin.methods.register_function(
         ),
         'quality_base': 'How the Phred score is encoded (33 or 64).',
         'cores': 'Number of CPU cores to use.',
+        'two_color': (
+            'Whether the reads came from a machine using two color chemistry.'
+        ),
+        'nextseq_trim': (
+            'Trim trailing Poly G tails with Phred score quality lower than '
+            'threshold from 3 prime end.'
+        ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -197,6 +206,8 @@ plugin.methods.register_function(
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
         'cores': Threads,
+        'two_color': Bool,
+        'nextseq_trim': Int,
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -316,6 +327,13 @@ plugin.methods.register_function(
         ),
         'quality_base': 'How the Phred score is encoded (33 or 64).',
         'cores': 'Number of CPU cores to use.',
+        'two_color': (
+            'Whether the reads came from a machine using two color chemistry.'
+        ),
+        'nextseq_trim': (
+            'Trim trailing Poly G tails with Phred score quality lower than '
+            'threshold from 3 prime end.'
+        ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',

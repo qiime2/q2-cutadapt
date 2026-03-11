@@ -41,6 +41,8 @@ _trim_defaults = {
     'quality_cutoff_5end': 0,
     'quality_cutoff_3end': 0,
     'quality_base': 33,
+    'two_color': False,
+    'nextseq_trim':  0,
 }
 
 
@@ -70,6 +72,8 @@ def _build_trim_command(
     quality_cutoff_5end=_trim_defaults['quality_cutoff_5end'],
     quality_cutoff_3end=_trim_defaults['quality_cutoff_3end'],
     quality_base=_trim_defaults['quality_base'],
+    two_color=_trim_defaults['two_color'],
+    nextseq_trim=_trim_defaults['nextseq_trim']
 ):
     cmd = [
         'cutadapt',
@@ -77,7 +81,13 @@ def _build_trim_command(
         '--error-rate', str(error_rate),
         '--times', str(times),
         '--overlap', str(overlap),
-        '--minimum-length', str(minimum_length),
+        '--minimum-length', str(minimum_length)
+    ]
+
+    if (two_color):
+        cmd += [f'--nextseq-trim={nextseq_trim}']
+
+    cmd += [
         '-q', ','.join([str(quality_cutoff_5end), str(quality_cutoff_3end)]),
         '--quality-base', str(quality_base),
         '--cores', str(cores),
@@ -151,6 +161,8 @@ def trim_single(
     quality_cutoff_3end: int = _trim_defaults['quality_cutoff_3end'],
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
+    two_color: bool = _trim_defaults['two_color'],
+    nextseq_trim: int = _trim_defaults['nextseq_trim'],
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -182,6 +194,8 @@ def trim_single(
             quality_cutoff_3end=quality_cutoff_3end,
             quality_base=quality_base,
             cores=cores,
+            two_color=two_color,
+            nextseq_trim=nextseq_trim,
         )
         cmds.append(cmd)
 
@@ -214,6 +228,8 @@ def trim_paired(
     quality_cutoff_3end: int = _trim_defaults['quality_cutoff_3end'],
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
+    two_color: bool = _trim_defaults['two_color'],
+    nextseq_trim: int = _trim_defaults['nextseq_trim'],
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -245,6 +261,8 @@ def trim_paired(
             quality_cutoff_3end=quality_cutoff_3end,
             quality_base=quality_base,
             cores=cores,
+            two_color=two_color,
+            nextseq_trim=nextseq_trim,
         )
         cmds.append(cmd)
 
