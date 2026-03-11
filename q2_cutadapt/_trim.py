@@ -8,8 +8,10 @@
 
 import os
 import pandas as pd
+import warnings
 
 from qiime2.plugin.util import run_commands
+from qiime2.core.exceptions import RachisWarning
 
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
@@ -41,7 +43,6 @@ _trim_defaults = {
     'quality_cutoff_5end': 0,
     'quality_cutoff_3end': 0,
     'quality_base': 33,
-    'two_color': False,
     'nextseq_trim':  0,
 }
 
@@ -72,9 +73,15 @@ def _build_trim_command(
     quality_cutoff_5end=_trim_defaults['quality_cutoff_5end'],
     quality_cutoff_3end=_trim_defaults['quality_cutoff_3end'],
     quality_base=_trim_defaults['quality_base'],
-    two_color=_trim_defaults['two_color'],
     nextseq_trim=_trim_defaults['nextseq_trim']
 ):
+    if (quality_cutoff_3end and nextseq_trim):
+        warnings.warn(
+            'Quality cutoff for 3 prime and NextSeq trimming is not supported '
+            'ignoring quality cutoff for 3 prime.',
+            RachisWarning
+        )
+
     cmd = [
         'cutadapt',
         '-u', str(forward_cut),
@@ -84,11 +91,18 @@ def _build_trim_command(
         '--minimum-length', str(minimum_length)
     ]
 
-    if (two_color):
-        cmd += [f'--nextseq-trim={nextseq_trim}']
+    if (nextseq_trim):
+        cmd += [
+            f'--nextseq-trim={nextseq_trim}',
+            '-q', ','.join([str(quality_cutoff_5end), str(0)])
+        ]
+    else:
+        cmd += [
+            '-q', ','.join(
+                [str(quality_cutoff_5end), str(quality_cutoff_3end)]
+            )]
 
     cmd += [
-        '-q', ','.join([str(quality_cutoff_5end), str(quality_cutoff_3end)]),
         '--quality-base', str(quality_base),
         '--cores', str(cores),
         '-o', str(trimmed_seqs.path / os.path.basename(f_read)),
@@ -161,7 +175,6 @@ def trim_single(
     quality_cutoff_3end: int = _trim_defaults['quality_cutoff_3end'],
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
-    two_color: bool = _trim_defaults['two_color'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
@@ -194,7 +207,6 @@ def trim_single(
             quality_cutoff_3end=quality_cutoff_3end,
             quality_base=quality_base,
             cores=cores,
-            two_color=two_color,
             nextseq_trim=nextseq_trim,
         )
         cmds.append(cmd)
@@ -228,7 +240,6 @@ def trim_paired(
     quality_cutoff_3end: int = _trim_defaults['quality_cutoff_3end'],
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
-    two_color: bool = _trim_defaults['two_color'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
@@ -261,7 +272,6 @@ def trim_paired(
             quality_cutoff_3end=quality_cutoff_3end,
             quality_base=quality_base,
             cores=cores,
-            two_color=two_color,
             nextseq_trim=nextseq_trim,
         )
         cmds.append(cmd)

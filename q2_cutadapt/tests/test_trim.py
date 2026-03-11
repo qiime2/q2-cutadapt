@@ -183,7 +183,7 @@ class TestTrimSingle(TestPluginBase):
                 for record in itertools.zip_longest(*[obs_fh] * 4):
                     self.assertTrue(record[0].strip() != maxn_seq_id)
 
-    def test_nextseq_quality_single(self):
+    def test_nextseq_single(self):
         sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-nextseq-quality')
@@ -195,7 +195,7 @@ class TestTrimSingle(TestPluginBase):
 
         with redirected_stdio(stdout=os.devnull):
             trimmed, = self.plugin.methods['trim_single'](
-                sequences, two_color=True, nextseq_trim=20
+                sequences, nextseq_trim=20
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
 
@@ -204,7 +204,84 @@ class TestTrimSingle(TestPluginBase):
             next(f)
             sequence = next(f).strip()
 
-        self.assertEquals(sequence, expected_sequence)
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_continues(self):
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-continue')
+        )
+
+        expected_sequence = ('ACACACA')
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_trims_5end(self):
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-5end')
+        )
+
+        expected_sequence = ('ACACACA')
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20, quality_cutoff_5end=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_parameter_default(self):
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-quality')
+        )
+
+        expected_sequence = (
+            'ACGTTGACCTGATCGTACGATCGTACGTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGGGG'
+            'GGGGGGGGGGGGGGGGG'
+        )
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_warns_nextseq_and_3end(self):
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-quality')
+        )
+
+        with self.assertWarns(UserWarning):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20, quality_cutoff_3end=20
+            )
 
     def test_cut_parameter_default(self):
         '''
@@ -397,7 +474,7 @@ class TestTrimPaired(TestPluginBase):
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
 
-    def test_nextseq_quality_paired(self):
+    def test_nextseq_paired(self):
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
             self.get_data_path('paired-nextseq-quality')
@@ -412,7 +489,7 @@ class TestTrimPaired(TestPluginBase):
 
         with redirected_stdio(stdout=os.devnull):
             trimmed, = self.plugin.methods['trim_paired'](
-                sequences, two_color=True, nextseq_trim=20
+                sequences, nextseq_trim=20
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
