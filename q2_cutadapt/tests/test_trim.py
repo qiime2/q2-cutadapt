@@ -183,6 +183,126 @@ class TestTrimSingle(TestPluginBase):
                 for record in itertools.zip_longest(*[obs_fh] * 4):
                     self.assertTrue(record[0].strip() != maxn_seq_id)
 
+    def test_nextseq_single(self):
+        '''
+        Tests that cutadapt removes poly-G tails for single end reads when
+        passed `nextseq_trim`.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-quality')
+        )
+
+        expected_sequence = (
+            'ACGTTGACCTGATCGTACGATCGTACGTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA'
+        )
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_continues(self):
+        '''
+        Tests that cutadapt continues trimming low quality reads after the
+        poly-G tail when passed `nextseq_trim`.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-continue')
+        )
+
+        expected_sequence = ('ACACACA')
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_trims_5end(self):
+        '''
+        Tests that cutadapt trims low quality reads from the 5 prime end when
+        passed `nextseq_trim` and `quality_cutoff_5end`,.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-5end')
+        )
+
+        expected_sequence = ('ACACACA')
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20, quality_cutoff_5end=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_nextseq_parameter_default(self):
+        '''
+        Tests that cutadapt does not trim any reads when passed only the
+        default parameters.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-quality')
+        )
+
+        expected_sequence = (
+            'ACGTTGACCTGATCGTACGATCGTACGTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGGGG'
+            'GGGGGGGGGGGGGGGGG'
+        )
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        fastq_fp = list(Path(trimmed_format.path).glob('*.fastq.gz'))[0]
+        with gzip.open(fastq_fp, 'rt') as f:
+            next(f)
+            sequence = next(f).strip()
+
+        self.assertEqual(sequence, expected_sequence)
+
+    def test_warns_nextseq_and_3end(self):
+        '''
+        Tests that a `RachisWarning` is raised when passing both `nextseq_trim`
+        and `quality_cutoff_3end` as these do essentially the same thing.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-nextseq-quality')
+        )
+
+        with self.assertWarns(UserWarning):
+            trimmed, = self.plugin.methods['trim_single'](
+                sequences, nextseq_trim=20, quality_cutoff_3end=20
+            )
+
     def test_cut_parameter_default(self):
         '''
         The default value of cut = 0 should not have any effect.
@@ -373,6 +493,43 @@ class TestTrimPaired(TestPluginBase):
                 # Make sure cutadapt trimmed the quality scores, too
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
+
+    def test_nextseq_paired(self):
+        '''
+        Tests that cutadapt removes poly-G tails for paired end reads when
+        being passed `nextseq_trim`.
+        '''
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-nextseq-quality')
+        )
+
+        expected_fwd = (
+            'ACGTTGACCTGATCGTACGATCGTACGTAGCTAGCTAGCTAGCTA'
+        )
+        expected_rev = (
+            'CGTAGCTAGCTAGCATCGATCGTAGCTAGCTAGCTA'
+        )
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, nextseq_trim=20
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        fastq_fp = sorted(list(Path(trimmed_format.path).glob('*.fastq.gz')))
+        index = 0
+        for file in fastq_fp:
+            with gzip.open(file, 'rt') as f:
+                next(f)
+                if not index:
+                    sequence_fwd = next(f).strip()
+                else:
+                    sequence_rev = next(f).strip()
+            index += 1
+
+        self.assertEqual(expected_fwd, sequence_fwd)
+        self.assertEqual(expected_rev, sequence_rev)
 
     def test_cut_parameter_default(self):
         '''

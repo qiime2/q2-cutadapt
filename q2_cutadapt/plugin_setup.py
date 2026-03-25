@@ -73,6 +73,7 @@ plugin.methods.register_function(
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
         'cores': Threads,
+        'nextseq_trim': Int,
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
@@ -156,6 +157,12 @@ plugin.methods.register_function(
         ),
         'quality_base': 'How the Phred score is encoded (33 or 64).',
         'cores': 'Number of CPU cores to use.',
+        'nextseq_trim': (
+            'Trim trailing Poly G tails from 3 prime end. Continues to trim '
+            'nucleotides with Phred score quality lower than threshold after '
+            'the tail. Note that this should not be used in conjunction with '
+            '`quality_cutoff_3end` as both trim from the 3 prime end.'
+        ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
@@ -197,6 +204,7 @@ plugin.methods.register_function(
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
         'cores': Threads,
+        'nextseq_trim': Int,
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -316,6 +324,12 @@ plugin.methods.register_function(
         ),
         'quality_base': 'How the Phred score is encoded (33 or 64).',
         'cores': 'Number of CPU cores to use.',
+        'nextseq_trim': (
+            'Trim trailing Poly G tails from 3 prime end. Continues to trim '
+            'nucleotides with Phred score quality lower than threshold after '
+            'the tail. Note that this should not be used in conjunction with '
+            '`quality_cutoff_3end` as both trim from the 3 prime end.'
+        ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
