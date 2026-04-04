@@ -722,6 +722,131 @@ class TestTrimPaired(TestPluginBase):
                     except StopIteration:
                         break
 
+    def test_pair_filter_any(self):
+        """
+        This tests that reads are discarded if atleast one paired end read
+        does not meet the minimum length requirement.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='any',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_counts = []
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_counts.append(len(f.readlines()))
+
+        self.assertTrue(all(line_count == 0 for line_count in line_counts))
+
+    def test_pair_filter_both_drops(self):
+        """
+        This tests that reads are discarded if both paired end reads do not
+        meet the minimum length requirement.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='both',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_counts = []
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_counts.append(len(f.readlines()))
+
+        self.assertTrue(all(line_count == 0 for line_count in line_counts))
+
+    def test_pair_filter_both_keeps(self):
+        """
+        This tests that reads are not discarded if only one read does not meet
+        the minimum length.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter-both')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='both',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_count = 0
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_count += len(f.readlines())
+
+        self.assertEqual(line_count, 8)
+
+    def test_pair_filter_first_drops(self):
+        """
+        This tests that reads are discarded if the first paired end read is
+        shorter than the minimum length and the second is longer.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter-first-drops')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='first',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_counts = []
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_counts.append(len(f.readlines()))
+        self.assertTrue(all(line_count == 0 for line_count in line_counts))
+
+    def test_pair_filter_first_keeps(self):
+        """
+        This tests that reads are kept if the first paired end read is longer
+        than the minimum length but the second paired end read is shorter than
+        the minimum.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter-first-keeps')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='first',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_count = 0
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_count += len(f.readlines())
+
+        self.assertEqual(line_count, 8)
+
 
 class TestTrimUtilsSingle(TestPluginBase):
     package = 'q2_cutadapt.tests'

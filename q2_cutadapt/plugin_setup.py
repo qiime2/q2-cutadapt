@@ -204,7 +204,11 @@ plugin.methods.register_function(
         'quality_cutoff_5end': Int % Range(0, None),
         'quality_base': Int % Range(0, None),
         'cores': Threads,
+<<<<<<< HEAD
         'nextseq_trim': Int,
+=======
+        'pair_filter': Str,
+>>>>>>> e6eefab (Adding paired filter options and tests)
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -324,12 +328,24 @@ plugin.methods.register_function(
         ),
         'quality_base': 'How the Phred score is encoded (33 or 64).',
         'cores': 'Number of CPU cores to use.',
+<<<<<<< HEAD
         'nextseq_trim': (
             'Trim trailing Poly G tails from 3 prime end. Continues to trim '
             'nucleotides with Phred score quality lower than threshold after '
             'the tail. Note that this should not be used in conjunction with '
             '`quality_cutoff_3end` as both trim from the 3 prime end.'
         ),
+=======
+        'pair_filter': (
+            'How to filter paired end reads. For example, if `minimum_length` '
+            'is passed along with the filter `any`, then if one read in a '
+            'pair is shorter than the minimum the pair is discarded. In the '
+            'same scenario if `both` is passed then both reads must be '
+            'shorter than the minimum in order to be discarded. Finaly, if '
+            '`fist` is passed then the pair is judged off of the first read'
+            'in the pair.'
+        )
+>>>>>>> e6eefab (Adding paired filter options and tests)
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',

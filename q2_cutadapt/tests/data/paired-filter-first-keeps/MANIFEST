@@ -1,0 +1,3 @@
+sample-id,filename,direction
+filter_first,filter_first_S00_L001_R1_001.fastq.gz,forward
+filter_first,filter_first_S00_L001_R2_001.fastq.gz,reverse

@@ -44,6 +44,7 @@ _trim_defaults = {
     'quality_cutoff_3end': 0,
     'quality_base': 33,
     'nextseq_trim':  0,
+    'pair_filter': None,
 }
 
 
@@ -73,7 +74,8 @@ def _build_trim_command(
     quality_cutoff_5end=_trim_defaults['quality_cutoff_5end'],
     quality_cutoff_3end=_trim_defaults['quality_cutoff_3end'],
     quality_base=_trim_defaults['quality_base'],
-    nextseq_trim=_trim_defaults['nextseq_trim']
+    nextseq_trim=_trim_defaults['nextseq_trim'],
+    pair_filter=_trim_defaults['pair_filter'],
 ):
     if (quality_cutoff_3end and nextseq_trim):
         warnings.warn(
@@ -151,6 +153,9 @@ def _build_trim_command(
         cmd += ['--max-expected-errors', str(max_expected_errors)]
     if max_n is not None:
         cmd += ['--max-n', str(max_n)]
+
+    if pair_filter is not None:
+        cmd += ['--pair-filter', pair_filter]
 
     return cmd
 
@@ -241,6 +246,7 @@ def trim_paired(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
+    pair_filter: str = _trim_defaults['pair_filter']
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -273,6 +279,7 @@ def trim_paired(
             quality_base=quality_base,
             cores=cores,
             nextseq_trim=nextseq_trim,
+            pair_filter=pair_filter,
         )
         cmds.append(cmd)
 
