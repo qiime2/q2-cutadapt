@@ -160,8 +160,9 @@ plugin.methods.register_function(
         'nextseq_trim': (
             'Trim trailing Poly G tails from 3 prime end. Continues to trim '
             'nucleotides with Phred score quality lower than threshold after '
-            'the tail. Note that this should not be used in conjunction with '
+            'the tail. Note: this should not be used in conjunction with '
             '`quality_cutoff_3end` as both trim from the 3 prime end.'
+            'Passing 0 disables this trim parameter.'
         ),
     },
     output_descriptions={
