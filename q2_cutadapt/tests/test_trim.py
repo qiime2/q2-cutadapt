@@ -424,6 +424,32 @@ class TestTrimSingle(TestPluginBase):
                     except StopIteration:
                         break
 
+    def test_discard_trimmed(self):
+        # TACGGAGGATCC occurs at the 5' end of a subset of reads in this
+        # dataset, so discard_trimmed=True should yield fewer sequences than
+        # the default (False).
+        adapter = ['TACGGAGGATCC']
+        demuxed_art = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end'))
+
+        def _count_seqs(art):
+            n = 0
+            obs = art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+            for _, fp in obs.sequences.iter_views(FastqGzFormat):
+                with gzip.open(str(fp), 'rt') as fh:
+                    n += sum(1 for _ in zip(*[fh] * 4))
+            return n
+
+        kwargs = dict(front=adapter)
+        with redirected_stdio(stdout=os.devnull):
+            kept_art, = self.plugin.methods['trim_single'](
+                demuxed_art, **kwargs)
+            discarded_art, = self.plugin.methods['trim_single'](
+                demuxed_art, discard_trimmed=True, **kwargs)
+
+        self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
+
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -462,6 +488,32 @@ class TestTrimPaired(TestPluginBase):
                 # Make sure cutadapt trimmed the quality scores, too
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
+
+    def test_discard_trimmed(self):
+        # TACGGAGGATCC occurs at the 5' end of a subset of pairs in this
+        # dataset, so discard_trimmed=True should yield fewer sequences than
+        # the default (False).
+        adapter = ['TACGGAGGATCC']
+        demuxed_art = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end'))
+
+        def _count_seqs(art):
+            n = 0
+            obs = art.view(SingleLanePerSampleSingleEndFastqDirFmt)
+            for _, fp in obs.sequences.iter_views(FastqGzFormat):
+                with gzip.open(str(fp), 'rt') as fh:
+                    n += sum(1 for _ in zip(*[fh] * 4))
+            return n
+
+        kwargs = dict(front_f=adapter, front_r=adapter)
+        with redirected_stdio(stdout=os.devnull):
+            kept_art, = self.plugin.methods['trim_paired'](
+                demuxed_art, **kwargs)
+            discarded_art, = self.plugin.methods['trim_paired'](
+                demuxed_art, discard_trimmed=True, **kwargs)
+
+        self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
 
     def test_unordered(self):
         demuxed_art = Artifact.import_data(
@@ -750,6 +802,7 @@ class TestTrimUtilsSingle(TestPluginBase):
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
                                       discard_untrimmed=True,
+                                      discard_trimmed=True,
                                       max_expected_errors=1,
                                       max_n=0,
                                       quality_base=33)
@@ -769,6 +822,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
+            self.assertTrue('--discard-trimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
             self.assertTrue('-q 0,0' in obs)
@@ -804,6 +858,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' not in obs)
             self.assertTrue('--minimum-length 1' in obs)
             self.assertTrue('--discard-untrimmed' not in obs)
+            self.assertTrue('--discard-trimmed' not in obs)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
@@ -836,6 +891,7 @@ class TestTrimUtilsPaired(TestPluginBase):
                                       match_adapter_wildcards=False,
                                       minimum_length=2,
                                       discard_untrimmed=True,
+                                      discard_trimmed=True,
                                       max_expected_errors=1,
                                       max_n=0,
                                       quality_base=33)
@@ -860,6 +916,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--no-match-adapter-wildcards' in obs)
             self.assertTrue('--minimum-length 2' in obs)
             self.assertTrue('--discard-untrimmed' in obs)
+            self.assertTrue('--discard-trimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
             self.assertTrue('-q 0,0' in obs)

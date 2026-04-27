@@ -38,12 +38,13 @@ _trim_defaults = {
     'match_adapter_wildcards': True,
     'minimum_length': 1,
     'discard_untrimmed': False,
+    'discard_trimmed': False,
     'max_expected_errors': None,
     'max_n': None,
     'quality_cutoff_5end': 0,
     'quality_cutoff_3end': 0,
     'quality_base': 33,
-    'nextseq_trim':  0,
+    'nextseq_trim': 0,
 }
 
 
@@ -68,6 +69,7 @@ def _build_trim_command(
     match_adapter_wildcards=_trim_defaults['match_adapter_wildcards'],
     minimum_length=_trim_defaults['minimum_length'],
     discard_untrimmed=_trim_defaults['discard_untrimmed'],
+    discard_trimmed=_trim_defaults['discard_trimmed'],
     max_expected_errors=_trim_defaults['max_expected_errors'],
     max_n=_trim_defaults['max_n'],
     quality_cutoff_5end=_trim_defaults['quality_cutoff_5end'],
@@ -75,7 +77,7 @@ def _build_trim_command(
     quality_base=_trim_defaults['quality_base'],
     nextseq_trim=_trim_defaults['nextseq_trim']
 ):
-    if (quality_cutoff_3end and nextseq_trim):
+    if quality_cutoff_3end and nextseq_trim:
         warnings.warn(
             'Quality cutoff for 3 prime and NextSeq trimming is not supported '
             'ignoring quality cutoff for 3 prime.',
@@ -91,7 +93,7 @@ def _build_trim_command(
         '--minimum-length', str(minimum_length)
     ]
 
-    if (nextseq_trim):
+    if nextseq_trim:
         cmd += [
             f'--nextseq-trim={nextseq_trim}',
             '-q', ','.join([str(quality_cutoff_5end), str(0)])
@@ -142,6 +144,8 @@ def _build_trim_command(
         cmd += ['--no-match-adapter-wildcards']
     if discard_untrimmed:
         cmd += ['--discard-untrimmed']
+    if discard_trimmed:
+        cmd += ['--discard-trimmed']
 
     cmd += [f_read]
 
@@ -169,6 +173,7 @@ def trim_single(
     match_adapter_wildcards: bool = _trim_defaults['match_adapter_wildcards'],
     minimum_length: int = _trim_defaults['minimum_length'],
     discard_untrimmed: bool = _trim_defaults['discard_untrimmed'],
+    discard_trimmed: bool = _trim_defaults['discard_trimmed'],
     max_expected_errors: float = _trim_defaults['max_expected_errors'],
     max_n: float = _trim_defaults['max_n'],
     quality_cutoff_5end: int = _trim_defaults['quality_cutoff_5end'],
@@ -201,6 +206,7 @@ def trim_single(
             match_adapter_wildcards=match_adapter_wildcards,
             minimum_length=minimum_length,
             discard_untrimmed=discard_untrimmed,
+            discard_trimmed=discard_trimmed,
             max_expected_errors=max_expected_errors,
             max_n=max_n,
             quality_cutoff_5end=quality_cutoff_5end,
@@ -234,6 +240,7 @@ def trim_paired(
     match_adapter_wildcards: bool = _trim_defaults['match_adapter_wildcards'],
     minimum_length: int = _trim_defaults['minimum_length'],
     discard_untrimmed: bool = _trim_defaults['discard_untrimmed'],
+    discard_trimmed: bool = _trim_defaults['discard_trimmed'],
     max_expected_errors: float = _trim_defaults['max_expected_errors'],
     max_n: float = _trim_defaults['max_n'],
     quality_cutoff_5end: int = _trim_defaults['quality_cutoff_5end'],
@@ -266,6 +273,7 @@ def trim_paired(
             match_adapter_wildcards=match_adapter_wildcards,
             minimum_length=minimum_length,
             discard_untrimmed=discard_untrimmed,
+            discard_trimmed=discard_trimmed,
             max_expected_errors=max_expected_errors,
             max_n=max_n,
             quality_cutoff_5end=quality_cutoff_5end,
