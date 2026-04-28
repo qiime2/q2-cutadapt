@@ -38,12 +38,14 @@ def _adapter_sequence(adapter: dict[str, Any]) -> str:
         return '...'.join(sequences)
 
 
-def _add_adapter_counts(
+def _add_adapter_percentages(
     row: dict[str, int | float],
     report: dict[str, Any],
     read_key: str,
     read_label: str,
     adapter_sequences: list[str],
+    read_denominator: int,
+    total_denominator: int,
 ) -> None:
     adapter_reports = report.get(read_key)
     if adapter_reports is None:
@@ -55,9 +57,11 @@ def _add_adapter_counts(
             adapter_sequences.append(sequence)
         count = adapter.get('total_matches', 0)
         column = f'{read_label}-{sequence}'
-        row[column] = row.get(column, 0) + count
+        row[column] = row.get(column, 0) + _percent(
+            count, read_denominator)
         total_column = f'total-{sequence}'
-        row[total_column] = row.get(total_column, 0) + count
+        row[total_column] = row.get(total_column, 0) + _percent(
+            count, total_denominator)
 
 
 def _percent(numerator: int, denominator: int) -> float:
@@ -73,10 +77,8 @@ def summarize_cutadapt_json_reports(
     rows: dict[str, dict[str, int | float]] = {}
     base_columns = [
         'reads-before',
-        'bases-before',
-        'reads-after',
-        'bases-after',
         'percent-reads-after',
+        'bases-before',
         'percent-bases-after',
     ]
     adapter_sequences: list[str] = []
@@ -92,20 +94,23 @@ def summarize_cutadapt_json_reports(
         reads_after = read_counts['output']
         bases_before = basepair_counts['input']
         bases_after = basepair_counts['output']
+        total_reads_before = reads_before
+        if basepair_counts.get('input_read2') is not None:
+            total_reads_before *= 2
 
         row = {
             'reads-before': reads_before,
-            'bases-before': bases_before,
-            'reads-after': reads_after,
-            'bases-after': bases_after,
             'percent-reads-after': _percent(reads_after, reads_before),
+            'bases-before': bases_before,
             'percent-bases-after': _percent(bases_after, bases_before),
         }
 
-        _add_adapter_counts(row, report, 'adapters_read1', 'read1',
-                            adapter_sequences)
-        _add_adapter_counts(row, report, 'adapters_read2', 'read2',
-                            adapter_sequences)
+        _add_adapter_percentages(row, report, 'adapters_read1', 'read1',
+                                 adapter_sequences, reads_before,
+                                 total_reads_before)
+        _add_adapter_percentages(row, report, 'adapters_read2', 'read2',
+                                 adapter_sequences, reads_before,
+                                 total_reads_before)
 
         rows[sample_id] = row
 

@@ -511,10 +511,8 @@ class TestTrimPaired(TestPluginBase):
         adapter_sequence = 'TACGGAGGATCC'
         exp_columns = [
             'reads-before',
-            'bases-before',
-            'reads-after',
-            'bases-after',
             'percent-reads-after',
+            'bases-before',
             'percent-bases-after',
             f'read1-{adapter_sequence}',
             f'read2-{adapter_sequence}',
@@ -525,15 +523,13 @@ class TestTrimPaired(TestPluginBase):
         for column in exp_columns:
             self.assertIn(column, obs)
 
-        self.assertTrue((obs['reads-before'] >= obs['reads-after']).all())
-        self.assertTrue((obs['bases-before'] >= obs['bases-after']).all())
+        self.assertNotIn('reads-after', obs)
+        self.assertNotIn('bases-after', obs)
         self.assertTrue((obs['percent-reads-after'] <= 100).all())
         self.assertTrue((obs['percent-bases-after'] <= 100).all())
-        self.assertTrue(
-            (obs[f'total-{adapter_sequence}'] ==
-             obs[f'read1-{adapter_sequence}'] +
-             obs[f'read2-{adapter_sequence}']).all()
-        )
+        self.assertTrue((obs[f'read1-{adapter_sequence}'] <= 100).all())
+        self.assertTrue((obs[f'read2-{adapter_sequence}'] <= 100).all())
+        self.assertTrue((obs[f'total-{adapter_sequence}'] <= 100).all())
 
     def test_nextseq_paired(self):
         '''
@@ -559,7 +555,6 @@ class TestTrimPaired(TestPluginBase):
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
         fastq_fp = sorted(list(Path(trimmed_format.path).glob('*.fastq.gz')))
-        index = 0
         for file in fastq_fp:
             with gzip.open(file, 'rt') as f:
                 next(f)
@@ -858,6 +853,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             },
             'basepair_counts': {
                 'input': 1000,
+                'input_read2': 500,
                 'output': 750,
             },
             'adapters_read1': [
@@ -921,21 +917,34 @@ class TestTrimUtilsSingle(TestPluginBase):
             }).to_dataframe()
 
         self.assertEqual(obs.index.name, 'sample-id')
+        self.assertEqual(list(obs.columns), [
+            'reads-before',
+            'percent-reads-after',
+            'bases-before',
+            'percent-bases-after',
+            'read1-AAAA',
+            'read2-AAAA',
+            'total-AAAA',
+            'read1-CCCC',
+            'read2-CCCC',
+            'total-CCCC',
+            'read1-GGGG',
+            'read2-GGGG',
+            'total-GGGG',
+        ])
         self.assertEqual(obs.loc['sample-a', 'reads-before'], 10)
-        self.assertEqual(obs.loc['sample-a', 'bases-before'], 1000)
-        self.assertEqual(obs.loc['sample-a', 'reads-after'], 8)
-        self.assertEqual(obs.loc['sample-a', 'bases-after'], 750)
         self.assertEqual(obs.loc['sample-a', 'percent-reads-after'], 80)
+        self.assertEqual(obs.loc['sample-a', 'bases-before'], 1000)
         self.assertEqual(obs.loc['sample-a', 'percent-bases-after'], 75)
-        self.assertEqual(obs.loc['sample-a', 'read1-AAAA'], 2)
-        self.assertEqual(obs.loc['sample-a', 'read2-AAAA'], 3)
-        self.assertEqual(obs.loc['sample-a', 'total-AAAA'], 5)
+        self.assertEqual(obs.loc['sample-a', 'read1-AAAA'], 20)
+        self.assertEqual(obs.loc['sample-a', 'read2-AAAA'], 30)
+        self.assertEqual(obs.loc['sample-a', 'total-AAAA'], 25)
         self.assertEqual(obs.loc['sample-a', 'read1-CCCC'], 0)
-        self.assertEqual(obs.loc['sample-a', 'read2-CCCC'], 1)
-        self.assertEqual(obs.loc['sample-a', 'total-CCCC'], 1)
-        self.assertEqual(obs.loc['sample-b', 'read1-GGGG'], 4)
+        self.assertEqual(obs.loc['sample-a', 'read2-CCCC'], 10)
+        self.assertEqual(obs.loc['sample-a', 'total-CCCC'], 5)
+        self.assertEqual(obs.loc['sample-b', 'read1-GGGG'], 80)
         self.assertEqual(obs.loc['sample-b', 'read2-GGGG'], 0)
-        self.assertEqual(obs.loc['sample-b', 'total-GGGG'], 4)
+        self.assertEqual(obs.loc['sample-b', 'total-GGGG'], 80)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
