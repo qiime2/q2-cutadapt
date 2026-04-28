@@ -8,7 +8,7 @@
 
 import json
 from os import PathLike
-from typing import Any, Mapping
+from typing import Any, Mapping, NamedTuple
 
 import pandas as pd
 import qiime2
@@ -17,51 +17,25 @@ import qiime2
 JsonReportPath = str | PathLike[str]
 
 
-def _adapter_sequence(adapter: dict[str, Any]) -> str:
-    sequences: list[str] = []
-    for end in ('five_prime_end', 'three_prime_end'):
-        end_report = adapter.get(end)
-        if end_report is not None:
-            sequence = end_report.get('sequence')
-            if sequence is not None and sequence not in sequences:
-                sequences.append(sequence)
-
-    if len(sequences) == 0:
-        sequence = adapter.get('sequence', adapter.get('name'))
-        if sequence is None:
-            raise ValueError('Cutadapt adapter report has no sequence.')
-        return str(sequence)
-    elif len(sequences) == 1:
-        return sequences[0]
-    else:
-        # Linked adapters contain a 5-prime and 3-prime sequence in one block.
-        return '...'.join(sequences)
+class AdapterSpec(NamedTuple):
+    read_key: str
+    column: str
 
 
 def _add_adapter_percentages(
     row: dict[str, int | float],
     report: dict[str, Any],
     read_key: str,
-    read_label: str,
-    adapter_sequences: list[str],
+    adapter_specs: list[AdapterSpec],
     read_denominator: int,
-    total_denominator: int,
 ) -> None:
     adapter_reports = report.get(read_key)
     if adapter_reports is None:
         return
 
-    for adapter in adapter_reports:
-        sequence = _adapter_sequence(adapter)
-        if sequence not in adapter_sequences:
-            adapter_sequences.append(sequence)
+    for adapter_spec, adapter in zip(adapter_specs, adapter_reports):
         count = adapter.get('total_matches', 0)
-        column = f'{read_label}-{sequence}'
-        row[column] = row.get(column, 0) + _percent(
-            count, read_denominator)
-        total_column = f'total-{sequence}'
-        row[total_column] = row.get(total_column, 0) + _percent(
-            count, total_denominator)
+        row[adapter_spec.column] = _percent(count, read_denominator)
 
 
 def _percent(numerator: int, denominator: int) -> float:
@@ -71,8 +45,46 @@ def _percent(numerator: int, denominator: int) -> float:
         return numerator / denominator * 100
 
 
+def _extend_adapter_specs(
+    adapter_specs: list[AdapterSpec],
+    adapters: list[str] | None,
+    end_label: str,
+    read_label: str,
+    read_key: str,
+) -> None:
+    for adapter in adapters or []:
+        adapter_specs.append(
+            AdapterSpec(read_key, f"{end_label} {read_label} {adapter}")
+        )
+
+
+def make_adapter_specs(
+    adapter_f: list[str] | None = None,
+    front_f: list[str] | None = None,
+    anywhere_f: list[str] | None = None,
+    adapter_r: list[str] | None = None,
+    front_r: list[str] | None = None,
+    anywhere_r: list[str] | None = None,
+) -> list[AdapterSpec]:
+    adapter_specs: list[AdapterSpec] = []
+    _extend_adapter_specs(adapter_specs, adapter_f, "3'", 'R1',
+                          'adapters_read1')
+    _extend_adapter_specs(adapter_specs, front_f, "5'", 'R1',
+                          'adapters_read1')
+    _extend_adapter_specs(adapter_specs, anywhere_f, "5' or 3'", 'R1',
+                          'adapters_read1')
+    _extend_adapter_specs(adapter_specs, adapter_r, "3'", 'R2',
+                          'adapters_read2')
+    _extend_adapter_specs(adapter_specs, front_r, "5'", 'R2',
+                          'adapters_read2')
+    _extend_adapter_specs(adapter_specs, anywhere_r, "5' or 3'", 'R2',
+                          'adapters_read2')
+    return adapter_specs
+
+
 def summarize_cutadapt_json_reports(
     json_reports: Mapping[str, JsonReportPath],
+    adapter_specs: list[AdapterSpec],
 ) -> qiime2.Metadata:
     rows: dict[str, dict[str, int | float]] = {}
     base_columns = [
@@ -81,7 +93,12 @@ def summarize_cutadapt_json_reports(
         'bases-before',
         'percent-bases-after',
     ]
-    adapter_sequences: list[str] = []
+    read1_adapter_specs = [
+        spec for spec in adapter_specs if spec.read_key == 'adapters_read1'
+    ]
+    read2_adapter_specs = [
+        spec for spec in adapter_specs if spec.read_key == 'adapters_read2'
+    ]
 
     for sample_id, json_report in json_reports.items():
         with open(json_report) as fh:
@@ -94,9 +111,6 @@ def summarize_cutadapt_json_reports(
         reads_after = read_counts['output']
         bases_before = basepair_counts['input']
         bases_after = basepair_counts['output']
-        total_reads_before = reads_before
-        if basepair_counts.get('input_read2') is not None:
-            total_reads_before *= 2
 
         row = {
             'reads-before': reads_before,
@@ -105,21 +119,15 @@ def summarize_cutadapt_json_reports(
             'percent-bases-after': _percent(bases_after, bases_before),
         }
 
-        _add_adapter_percentages(row, report, 'adapters_read1', 'read1',
-                                 adapter_sequences, reads_before,
-                                 total_reads_before)
-        _add_adapter_percentages(row, report, 'adapters_read2', 'read2',
-                                 adapter_sequences, reads_before,
-                                 total_reads_before)
+        _add_adapter_percentages(row, report, 'adapters_read1',
+                                 read1_adapter_specs, reads_before)
+        _add_adapter_percentages(row, report, 'adapters_read2',
+                                 read2_adapter_specs, reads_before)
 
         rows[sample_id] = row
 
     result = pd.DataFrame.from_dict(rows, orient='index').fillna(0)
-    adapter_columns = [
-        f'{read}-{sequence}'
-        for sequence in adapter_sequences
-        for read in ('read1', 'read2', 'total')
-    ]
+    adapter_columns = [spec.column for spec in adapter_specs]
     result = result.reindex(columns=base_columns + adapter_columns,
                             fill_value=0)
     result.index.name = 'sample-id'

@@ -22,7 +22,10 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
 )
 
-from q2_cutadapt._stats import summarize_cutadapt_json_reports
+from q2_cutadapt._stats import (
+    make_adapter_specs,
+    summarize_cutadapt_json_reports,
+)
 
 
 _trim_defaults = {
@@ -188,6 +191,11 @@ def trim_single(
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}
+    adapter_specs = make_adapter_specs(
+        adapter_f=adapter,
+        front_f=front,
+        anywhere_f=anywhere,
+    )
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
     with tempfile.TemporaryDirectory() as report_dir:
         for sample_id, fwd in df.itertuples():
@@ -225,7 +233,7 @@ def trim_single(
             json_reports[sample_id] = json_report
 
         run_commands(cmds)
-        stats = summarize_cutadapt_json_reports(json_reports)
+        stats = summarize_cutadapt_json_reports(json_reports, adapter_specs)
 
     return trimmed_sequences, stats
 
@@ -259,6 +267,14 @@ def trim_paired(
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}
+    adapter_specs = make_adapter_specs(
+        adapter_f=adapter_f,
+        front_f=front_f,
+        anywhere_f=anywhere_f,
+        adapter_r=adapter_r,
+        front_r=front_r,
+        anywhere_r=anywhere_r,
+    )
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
     with tempfile.TemporaryDirectory() as report_dir:
         for sample_id, fwd, rev in df.itertuples():
@@ -296,6 +312,6 @@ def trim_paired(
             json_reports[sample_id] = json_report
 
         run_commands(cmds)
-        stats = summarize_cutadapt_json_reports(json_reports)
+        stats = summarize_cutadapt_json_reports(json_reports, adapter_specs)
 
     return trimmed_sequences, stats

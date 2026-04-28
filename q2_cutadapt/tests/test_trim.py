@@ -18,7 +18,10 @@ import pandas as pd
 
 import qiime2
 
-from q2_cutadapt._stats import summarize_cutadapt_json_reports
+from q2_cutadapt._stats import (
+    make_adapter_specs,
+    summarize_cutadapt_json_reports,
+)
 from q2_cutadapt._trim import _build_trim_command
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
@@ -442,7 +445,7 @@ class TestTrimPaired(TestPluginBase):
             self.get_data_path('paired-end'))
         adapter = ['TACGGAGGATCC']
         with redirected_stdio(stdout=os.devnull):
-            # The forward and reverse reads are identical in these data
+            # The forward and R2s are identical in these data
             obs_art, _ = self.plugin.methods['trim_paired'](
                 demuxed_art, front_f=adapter, front_r=adapter)
         demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -472,7 +475,7 @@ class TestTrimPaired(TestPluginBase):
             'SampleData[PairedEndSequencesWithQuality]',
             self.get_data_path('paired-end-unordered'))
         with redirected_stdio(stdout=os.devnull):
-            # The forward and reverse reads are identical in these data
+            # The forward and R2s are identical in these data
             obs_art, _ = self.plugin.methods['trim_paired'](
                 demuxed_art, front_f=['TTTT'], front_r=['AAAA'])
         demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -514,9 +517,8 @@ class TestTrimPaired(TestPluginBase):
             'percent-reads-after',
             'bases-before',
             'percent-bases-after',
-            f'read1-{adapter_sequence}',
-            f'read2-{adapter_sequence}',
-            f'total-{adapter_sequence}',
+            f"5' R1 {adapter_sequence}",
+            f"5' R2 {adapter_sequence}",
         ]
 
         self.assertEqual(list(obs.index), ['sample_a', 'sample_b', 'sample_c'])
@@ -527,9 +529,12 @@ class TestTrimPaired(TestPluginBase):
         self.assertNotIn('bases-after', obs)
         self.assertTrue((obs['percent-reads-after'] <= 100).all())
         self.assertTrue((obs['percent-bases-after'] <= 100).all())
-        self.assertTrue((obs[f'read1-{adapter_sequence}'] <= 100).all())
-        self.assertTrue((obs[f'read2-{adapter_sequence}'] <= 100).all())
-        self.assertTrue((obs[f'total-{adapter_sequence}'] <= 100).all())
+        self.assertTrue(
+            (obs[f"5' R1 {adapter_sequence}"] <= 100).all()
+        )
+        self.assertTrue(
+            (obs[f"5' R2 {adapter_sequence}"] <= 100).all()
+        )
 
     def test_nextseq_paired(self):
         '''
@@ -896,7 +901,7 @@ class TestTrimUtilsSingle(TestPluginBase):
                     'total_matches': 4,
                     'five_prime_end': None,
                     'three_prime_end': {
-                        'sequence': 'GGGG',
+                        'sequence': 'AAAA',
                     },
                 },
             ],
@@ -914,7 +919,11 @@ class TestTrimUtilsSingle(TestPluginBase):
             obs = summarize_cutadapt_json_reports({
                 'sample-a': report1_fp,
                 'sample-b': report2_fp,
-            }).to_dataframe()
+            }, make_adapter_specs(
+                adapter_f=['AAAA'],
+                adapter_r=['AAAA'],
+                front_r=['CCCC'],
+            )).to_dataframe()
 
         self.assertEqual(obs.index.name, 'sample-id')
         self.assertEqual(list(obs.columns), [
@@ -922,29 +931,20 @@ class TestTrimUtilsSingle(TestPluginBase):
             'percent-reads-after',
             'bases-before',
             'percent-bases-after',
-            'read1-AAAA',
-            'read2-AAAA',
-            'total-AAAA',
-            'read1-CCCC',
-            'read2-CCCC',
-            'total-CCCC',
-            'read1-GGGG',
-            'read2-GGGG',
-            'total-GGGG',
+            "3' R1 AAAA",
+            "3' R2 AAAA",
+            "5' R2 CCCC",
         ])
         self.assertEqual(obs.loc['sample-a', 'reads-before'], 10)
         self.assertEqual(obs.loc['sample-a', 'percent-reads-after'], 80)
         self.assertEqual(obs.loc['sample-a', 'bases-before'], 1000)
         self.assertEqual(obs.loc['sample-a', 'percent-bases-after'], 75)
-        self.assertEqual(obs.loc['sample-a', 'read1-AAAA'], 20)
-        self.assertEqual(obs.loc['sample-a', 'read2-AAAA'], 30)
-        self.assertEqual(obs.loc['sample-a', 'total-AAAA'], 25)
-        self.assertEqual(obs.loc['sample-a', 'read1-CCCC'], 0)
-        self.assertEqual(obs.loc['sample-a', 'read2-CCCC'], 10)
-        self.assertEqual(obs.loc['sample-a', 'total-CCCC'], 5)
-        self.assertEqual(obs.loc['sample-b', 'read1-GGGG'], 80)
-        self.assertEqual(obs.loc['sample-b', 'read2-GGGG'], 0)
-        self.assertEqual(obs.loc['sample-b', 'total-GGGG'], 80)
+        self.assertEqual(obs.loc['sample-a', "3' R1 AAAA"], 20)
+        self.assertEqual(obs.loc['sample-a', "3' R2 AAAA"], 30)
+        self.assertEqual(obs.loc['sample-a', "5' R2 CCCC"], 10)
+        self.assertEqual(obs.loc['sample-b', "3' R1 AAAA"], 80)
+        self.assertEqual(obs.loc['sample-b', "3' R2 AAAA"], 0)
+        self.assertEqual(obs.loc['sample-b', "5' R2 CCCC"], 0)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
