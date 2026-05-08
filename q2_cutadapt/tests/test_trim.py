@@ -8,12 +8,17 @@
 
 import gzip
 import itertools
+import json
 import os
 from pathlib import Path
+import tempfile
 import unittest
 
 import pandas as pd
 
+import qiime2
+
+from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 from q2_cutadapt._trim import _build_trim_command
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
@@ -37,8 +42,8 @@ class TestTrimSingle(TestPluginBase):
                                            self.get_data_path('single-end'))
         adapter = ['TACGGAGGATCC']
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](demuxed_art,
-                                                          front=adapter)
+            obs_art, _ = self.plugin.methods['trim_single'](
+                demuxed_art, front=adapter)
         demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         demuxed_seqs = demuxed.sequences.iter_views(FastqGzFormat)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -70,8 +75,8 @@ class TestTrimSingle(TestPluginBase):
         empty_seq_id = '@HWI-EAS440_0386:1:28:6491:1375#0/1'
 
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](demuxed_art,
-                                                          adapter=adapter)
+            obs_art, _ = self.plugin.methods['trim_single'](
+                demuxed_art, adapter=adapter)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
             with gzip.open(str(obs_fp), 'rt') as obs_fh:
@@ -89,7 +94,7 @@ class TestTrimSingle(TestPluginBase):
 
         q5 = 20
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](
+            obs_art, _ = self.plugin.methods['trim_single'](
                        demuxed_art, quality_cutoff_5end=q5)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
@@ -111,7 +116,7 @@ class TestTrimSingle(TestPluginBase):
         q3 = 10
 
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](
+            obs_art, _ = self.plugin.methods['trim_single'](
                        demuxed_art, quality_cutoff_3end=q3)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
@@ -136,7 +141,7 @@ class TestTrimSingle(TestPluginBase):
         q3 = 10
 
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](
+            obs_art, _ = self.plugin.methods['trim_single'](
                        demuxed_art, quality_cutoff_5end=q5,
                        quality_cutoff_3end=q3)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -158,7 +163,7 @@ class TestTrimSingle(TestPluginBase):
         maxee_seq_id = '@HWI-EAS440_0386:1:70:7591:17599#0/1'
         max_expected_errors = 1
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](
+            obs_art, _ = self.plugin.methods['trim_single'](
                        demuxed_art,
                        max_expected_errors=max_expected_errors)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -175,7 +180,7 @@ class TestTrimSingle(TestPluginBase):
         maxn_seq_id = '@HWI-EAS440_0386:1:72:15133:12639#0/1'
         max_n = 0
         with redirected_stdio(stdout=os.devnull):
-            obs_art, = self.plugin.methods['trim_single'](
+            obs_art, _ = self.plugin.methods['trim_single'](
                       demuxed_art, max_n=max_n)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         for _, obs_fp in obs.sequences.iter_views(FastqGzFormat):
@@ -198,7 +203,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, nextseq_trim=20
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -223,7 +228,7 @@ class TestTrimSingle(TestPluginBase):
         expected_sequence = ('ACACACA')
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, nextseq_trim=20
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -248,7 +253,7 @@ class TestTrimSingle(TestPluginBase):
         expected_sequence = ('ACACACA')
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, nextseq_trim=20, quality_cutoff_5end=20
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -276,7 +281,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -299,7 +304,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with self.assertWarns(UserWarning):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, nextseq_trim=20, quality_cutoff_3end=20
             )
 
@@ -316,7 +321,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -346,7 +351,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, cut=5,
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -390,7 +395,7 @@ class TestTrimSingle(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_single'](
+            trimmed, _ = self.plugin.methods['trim_single'](
                 sequences, cut=-20,
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -443,9 +448,9 @@ class TestTrimSingle(TestPluginBase):
 
         kwargs = dict(front=adapter)
         with redirected_stdio(stdout=os.devnull):
-            kept_art, = self.plugin.methods['trim_single'](
+            kept_art, _ = self.plugin.methods['trim_single'](
                 demuxed_art, **kwargs)
-            discarded_art, = self.plugin.methods['trim_single'](
+            discarded_art, _ = self.plugin.methods['trim_single'](
                 demuxed_art, discard_trimmed=True, **kwargs)
 
         self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
@@ -463,10 +468,9 @@ class TestTrimPaired(TestPluginBase):
             self.get_data_path('paired-end'))
         adapter = ['TACGGAGGATCC']
         with redirected_stdio(stdout=os.devnull):
-            # The forward and reverse reads are identical in these data
-            obs_art, = self.plugin.methods['trim_paired'](demuxed_art,
-                                                          front_f=adapter,
-                                                          front_r=adapter)
+            # The forward and R2s are identical in these data
+            obs_art, _ = self.plugin.methods['trim_paired'](
+                demuxed_art, front_f=adapter, front_r=adapter)
         demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         demuxed_seqs = demuxed.sequences.iter_views(FastqGzFormat)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -508,9 +512,9 @@ class TestTrimPaired(TestPluginBase):
 
         kwargs = dict(front_f=adapter, front_r=adapter)
         with redirected_stdio(stdout=os.devnull):
-            kept_art, = self.plugin.methods['trim_paired'](
+            kept_art, _ = self.plugin.methods['trim_paired'](
                 demuxed_art, **kwargs)
-            discarded_art, = self.plugin.methods['trim_paired'](
+            discarded_art, _ = self.plugin.methods['trim_paired'](
                 demuxed_art, discard_trimmed=True, **kwargs)
 
         self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
@@ -520,10 +524,9 @@ class TestTrimPaired(TestPluginBase):
             'SampleData[PairedEndSequencesWithQuality]',
             self.get_data_path('paired-end-unordered'))
         with redirected_stdio(stdout=os.devnull):
-            # The forward and reverse reads are identical in these data
-            obs_art, = self.plugin.methods['trim_paired'](demuxed_art,
-                                                          front_f=['TTTT'],
-                                                          front_r=['AAAA'])
+            # The forward and R2s are identical in these data
+            obs_art, _ = self.plugin.methods['trim_paired'](
+                demuxed_art, front_f=['TTTT'], front_r=['AAAA'])
         demuxed = demuxed_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
         demuxed_seqs = demuxed.sequences.iter_views(FastqGzFormat)
         obs = obs_art.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -546,6 +549,42 @@ class TestTrimPaired(TestPluginBase):
                 self.assertEqual(len(obs_seq), len(obs_qual))
             exp_fh.close(), obs_fh.close()
 
+    def test_stats(self):
+        demuxed_art = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end'))
+        adapter = ['TACGGAGGATCC']
+
+        with redirected_stdio(stdout=os.devnull):
+            _, stats = self.plugin.methods['trim_paired'](
+                demuxed_art, front_f=adapter, front_r=adapter)
+
+        obs = stats.view(qiime2.Metadata).to_dataframe()
+        adapter_sequence = 'TACGGAGGATCC'
+        exp_columns = [
+            'reads-before',
+            'percent-reads-after',
+            'bases-before',
+            'percent-bases-after',
+            f"5' R1 {adapter_sequence}",
+            f"5' R2 {adapter_sequence}",
+        ]
+
+        self.assertEqual(list(obs.index), ['sample_a', 'sample_b', 'sample_c'])
+        for column in exp_columns:
+            self.assertIn(column, obs)
+
+        self.assertNotIn('reads-after', obs)
+        self.assertNotIn('bases-after', obs)
+        self.assertTrue((obs['percent-reads-after'] <= 100).all())
+        self.assertTrue((obs['percent-bases-after'] <= 100).all())
+        self.assertTrue(
+            (obs[f"5' R1 {adapter_sequence}"] <= 100).all()
+        )
+        self.assertTrue(
+            (obs[f"5' R2 {adapter_sequence}"] <= 100).all()
+        )
+
     def test_nextseq_paired(self):
         '''
         Tests that cutadapt removes poly-G tails for paired end reads when
@@ -564,21 +603,19 @@ class TestTrimPaired(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_paired'](
+            trimmed, _ = self.plugin.methods['trim_paired'](
                 sequences, nextseq_trim=20
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
         fastq_fp = sorted(list(Path(trimmed_format.path).glob('*.fastq.gz')))
-        index = 0
         for file in fastq_fp:
             with gzip.open(file, 'rt') as f:
                 next(f)
-                if not index:
+                if 'R1' in str(file):
                     sequence_fwd = next(f).strip()
                 else:
                     sequence_rev = next(f).strip()
-            index += 1
 
         self.assertEqual(expected_fwd, sequence_fwd)
         self.assertEqual(expected_rev, sequence_rev)
@@ -597,7 +634,7 @@ class TestTrimPaired(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_paired'](
+            trimmed, _ = self.plugin.methods['trim_paired'](
                 sequences, forward_cut=0, reverse_cut=0
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -627,7 +664,7 @@ class TestTrimPaired(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_paired'](
+            trimmed, _ = self.plugin.methods['trim_paired'](
                 sequences, forward_cut=1, reverse_cut=9
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
@@ -679,7 +716,7 @@ class TestTrimPaired(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_paired'](
+            trimmed, _ = self.plugin.methods['trim_paired'](
                 sequences, forward_cut=-8, reverse_cut=-4
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -732,7 +769,7 @@ class TestTrimPaired(TestPluginBase):
         )
 
         with redirected_stdio(stdout=os.devnull):
-            trimmed, = self.plugin.methods['trim_paired'](
+            trimmed, _ = self.plugin.methods['trim_paired'](
                 sequences, forward_cut=-5, reverse_cut=11
             )
         trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
@@ -790,6 +827,7 @@ class TestTrimUtilsSingle(TestPluginBase):
         for _, fwd in df.itertuples():
             obs = _build_trim_command(fwd, None,
                                       self.trimmed_seqs,
+                                      'report.json',
                                       cores=0,
                                       adapter_f=['AAAA'],
                                       front_f=['GGGG'],
@@ -825,6 +863,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--discard-trimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
+            self.assertTrue('--json report.json' in obs)
             self.assertTrue('-q 0,0' in obs)
             self.assertTrue('--quality-base 33' in obs)
             self.assertTrue(str(self.demux_seqs) in obs)
@@ -834,6 +873,7 @@ class TestTrimUtilsSingle(TestPluginBase):
         for _, fwd in df.itertuples():
             obs = _build_trim_command(fwd, None,
                                       self.trimmed_seqs,
+                                      'report.json',
                                       adapter_f=['AAAA', 'GGGG', 'CCCC'])
             obs = ' '.join(obs)
 
@@ -847,7 +887,8 @@ class TestTrimUtilsSingle(TestPluginBase):
         df = self.demux_seqs.manifest.view(pd.DataFrame)
         for _, fwd in df.itertuples():
             obs = _build_trim_command(fwd, None,
-                                      self.trimmed_seqs)
+                                      self.trimmed_seqs,
+                                      'report.json')
             obs = ' '.join(obs)
 
             self.assertTrue('--adapter' not in obs)
@@ -859,6 +900,248 @@ class TestTrimUtilsSingle(TestPluginBase):
             self.assertTrue('--minimum-length 1' in obs)
             self.assertTrue('--discard-untrimmed' not in obs)
             self.assertTrue('--discard-trimmed' not in obs)
+            self.assertTrue('--json report.json' in obs)
+
+    def test_summarize_cutadapt_json_reports(self):
+        report1 = {
+            'read_counts': {
+                'input': 10,
+                'output': 8,
+                'read1_with_adapter': 5,
+                'read2_with_adapter': 4,
+            },
+            'basepair_counts': {
+                'input': 1000,
+                'input_read2': 500,
+                'output': 750,
+                'quality_trimmed': 100,
+            },
+            'adapters_read1': [
+                {
+                    'total_matches': 2,
+                    'five_prime_end': None,
+                    'three_prime_end': {
+                        'sequence': 'AAAA',
+                    },
+                },
+            ],
+            'adapters_read2': [
+                {
+                    'total_matches': 3,
+                    'five_prime_end': None,
+                    'three_prime_end': {
+                        'sequence': 'AAAA',
+                    },
+                },
+                {
+                    'total_matches': 1,
+                    'five_prime_end': {
+                        'sequence': 'CCCC',
+                    },
+                    'three_prime_end': None,
+                },
+            ],
+        }
+        report2 = {
+            'read_counts': {
+                'input': 5,
+                'output': 5,
+                'read1_with_adapter': 1,
+                'read2_with_adapter': 0,
+            },
+            'basepair_counts': {
+                'input': 500,
+                'output': 500,
+                'quality_trimmed': 0,
+            },
+            'adapters_read1': [
+                {
+                    'total_matches': 4,
+                    'five_prime_end': None,
+                    'three_prime_end': {
+                        'sequence': 'AAAA',
+                    },
+                },
+            ],
+            'adapters_read2': None,
+        }
+
+        with tempfile.TemporaryDirectory('q2-cutadapt-tests-') as temp_dir:
+            report1_fp = Path(temp_dir) / '1.json'
+            report2_fp = Path(temp_dir) / '2.json'
+            with open(report1_fp, 'w') as fh:
+                json.dump(report1, fh)
+            with open(report2_fp, 'w') as fh:
+                json.dump(report2, fh)
+
+            obs = _summarize_cutadapt_json_reports({
+                'sample-a': report1_fp,
+                'sample-b': report2_fp,
+            }).to_dataframe()
+
+        self.assertEqual(obs.index.name, 'sample-id')
+        self.assertEqual(list(obs.columns), [
+            'reads-before',
+            'percent-reads-after',
+            'bases-before',
+            'percent-bases-after',
+            'percent-bases-quality-trimmed',
+            'percent-r1-with-adapter',
+            'percent-r2-with-adapter',
+            "3' R1 AAAA",
+            "3' R2 AAAA",
+            "5' R2 CCCC",
+        ])
+        self.assertEqual(obs.loc['sample-a', 'reads-before'], 10)
+        self.assertEqual(obs.loc['sample-a', 'percent-reads-after'], 80)
+        self.assertEqual(obs.loc['sample-a', 'bases-before'], 1000)
+        self.assertEqual(obs.loc['sample-a', 'percent-bases-after'], 75)
+        self.assertEqual(obs.loc['sample-a', 'percent-bases-quality-trimmed'],
+                         10)
+        self.assertEqual(obs.loc['sample-a', 'percent-r1-with-adapter'], 50)
+        self.assertEqual(obs.loc['sample-a', 'percent-r2-with-adapter'], 40)
+        self.assertEqual(obs.loc['sample-a', "3' R1 AAAA"], 20)
+        self.assertEqual(obs.loc['sample-a', "3' R2 AAAA"], 30)
+        self.assertEqual(obs.loc['sample-a', "5' R2 CCCC"], 10)
+        self.assertEqual(obs.loc['sample-b', 'percent-bases-quality-trimmed'],
+                         0)
+        self.assertEqual(obs.loc['sample-b', 'percent-r1-with-adapter'], 20)
+        self.assertEqual(obs.loc['sample-b', 'percent-r2-with-adapter'], 0)
+        self.assertEqual(obs.loc['sample-b', "3' R1 AAAA"], 80)
+        self.assertEqual(obs.loc['sample-b', "3' R2 AAAA"], 0)
+        self.assertEqual(obs.loc['sample-b', "5' R2 CCCC"], 0)
+
+    def test_summarize_cutadapt_json_reports_documented_example(self):
+        # JSON fixture copied from
+        # https://cutadapt.readthedocs.io/en/v5.2/reference.html
+        # #json-report-format on 2026-05-08.
+        report = {
+            "tag": "Cutadapt report",
+            "schema_version": [0, 3],
+            "cutadapt_version": "4.5",
+            "python_version": "3.8.10",
+            "command_line_arguments": [
+                "--json=out.cutadapt.json", "--poly-a", "-m", "20",
+                "-a", "AACCGGTTACGTTGCA", "-q", "20", "--discard-trimmed",
+                "-o", "out.fastq.gz", "reads.fastq"],
+            "cores": 1,
+            "input": {
+                "path1": "reads.fastq",
+                "path2": None,
+                "paired": False,
+                "interleaved": None,
+            },
+            "read_counts": {
+                "input": 100000,
+                "filtered": {
+                    "too_short": 251,
+                    "too_long": None,
+                    "too_many_n": None,
+                    "too_many_expected_errors": None,
+                    "casava_filtered": None,
+                    "discard_trimmed": 2061,
+                    "discard_untrimmed": None,
+                },
+                "output": 97688,
+                "reverse_complemented": None,
+                "read1_with_adapter": 2254,
+                "read2_with_adapter": None,
+            },
+            "basepair_counts": {
+                "input": 10100000,
+                "input_read1": 10100000,
+                "input_read2": None,
+                "quality_trimmed": 842048,
+                "quality_trimmed_read1": 842048,
+                "quality_trimmed_read2": None,
+                "poly_a_trimmed": 1028,
+                "poly_a_trimmed_read1": 1028,
+                "poly_a_trimmed_read2": None,
+                "output": 9037053,
+                "output_read1": 9037053,
+                "output_read2": None,
+            },
+            "adapters_read1": [
+                {
+                    "name": "1",
+                    "total_matches": 2254,
+                    "on_reverse_complement": None,
+                    "linked": False,
+                    "five_prime_end": None,
+                    "three_prime_end": {
+                        "type": "regular_three_prime",
+                        "sequence": "AACCGGTTACGTTGCA",
+                        "error_rate": 0.1,
+                        "indels": True,
+                        "error_lengths": [6],
+                        "matches": 2254,
+                        "adjacent_bases": {
+                            "A": 473,
+                            "C": 1240,
+                            "G": 328,
+                            "T": 207,
+                            "": 6,
+                        },
+                        "dominant_adjacent_base": None,
+                        "trimmed_lengths": [
+                            {"len": 3, "expect": 1562.5, "counts": [1220]},
+                            {"len": 4, "expect": 390.6, "counts": [319]},
+                            {"len": 5, "expect": 97.7, "counts": [30]},
+                            {"len": 6, "expect": 24.4, "counts": [4]},
+                            {"len": 7, "expect": 24.4, "counts": [5]},
+                            {"len": 8, "expect": 24.4, "counts": [7]},
+                            {"len": 9, "expect": 24.4, "counts": [4]},
+                            {"len": 10, "expect": 24.4, "counts": [7]},
+                            {"len": 11, "expect": 24.4, "counts": [7]},
+                            {"len": 12, "expect": 24.4, "counts": [6]},
+                            {"len": 13, "expect": 24.4, "counts": [8, 2]},
+                            {"len": 14, "expect": 24.4, "counts": [1, 1]},
+                            {"len": 15, "expect": 24.4, "counts": [2, 0]},
+                            {"len": 16, "expect": 24.4, "counts": [3, 1]},
+                        ],
+                    },
+                },
+            ],
+            "adapters_read2": None,
+            "poly_a_trimmed_read1": [
+                {"len": 23, "count": 10},
+                {"len": 42, "count": 19},
+            ],
+            "poly_a_trimmed_read2": None,
+        }
+
+        with tempfile.TemporaryDirectory('q2-cutadapt-tests-') as temp_dir:
+            report_fp = Path(temp_dir) / '1.json'
+            with open(report_fp, 'w') as fh:
+                json.dump(report, fh)
+
+            obs = _summarize_cutadapt_json_reports(
+                {'sample-a': report_fp}).to_dataframe()
+
+        self.assertEqual(obs.index.name, 'sample-id')
+        self.assertEqual(list(obs.columns), [
+            'reads-before',
+            'percent-reads-after',
+            'bases-before',
+            'percent-bases-after',
+            'percent-bases-quality-trimmed',
+            'percent-r1-with-adapter',
+            "3' R1 AACCGGTTACGTTGCA",
+        ])
+        self.assertEqual(obs.loc['sample-a', 'reads-before'], 100000)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-reads-after'], 97.688)
+        self.assertEqual(obs.loc['sample-a', 'bases-before'], 10100000)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-bases-after'],
+            9037053 / 10100000 * 100)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-bases-quality-trimmed'],
+            842048 / 10100000 * 100)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-r1-with-adapter'], 2.254)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', "3' R1 AACCGGTTACGTTGCA"], 2.254)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
@@ -876,6 +1159,7 @@ class TestTrimUtilsPaired(TestPluginBase):
         for _, fwd, rev in df.itertuples():
             obs = _build_trim_command(fwd, rev,
                                       self.trimmed_seqs,
+                                      'report.json',
                                       cores=0,
                                       adapter_f=['AAAA'],
                                       front_f=['GGGG'],
@@ -919,6 +1203,7 @@ class TestTrimUtilsPaired(TestPluginBase):
             self.assertTrue('--discard-trimmed' in obs)
             self.assertTrue('--max-expected-errors 1' in obs)
             self.assertTrue('--max-n 0' in obs)
+            self.assertTrue('--json report.json' in obs)
             self.assertTrue('-q 0,0' in obs)
             self.assertTrue('--quality-base 33' in obs)
 
@@ -928,6 +1213,7 @@ class TestTrimUtilsPaired(TestPluginBase):
         df = self.demux_seqs.manifest.view(pd.DataFrame)
         for _, fwd, rev in df.itertuples():
             obs = _build_trim_command(fwd, rev, self.trimmed_seqs,
+                                      'report.json',
                                       adapter_f=['AAAA', 'GGGG', 'CCCC'],
                                       adapter_r=['TTTT', 'CCCC', 'GGGG'])
             obs = ' '.join(obs)

@@ -28,6 +28,7 @@ from q2_types.per_sample_sequences import (
     SequencesWithQuality,
     PairedEndSequencesWithQuality,
 )
+from q2_types.metadata import ImmutableMetadata
 
 import q2_cutadapt
 import q2_cutadapt._demux
@@ -78,6 +79,7 @@ plugin.methods.register_function(
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
+        ('stats', ImmutableMetadata),
     ],
     input_descriptions={
         'demultiplexed_sequences': 'The single-end sequences to be trimmed.',
@@ -169,6 +171,7 @@ plugin.methods.register_function(
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
+        'stats': 'Per-sample cutadapt trimming statistics.',
     },
     name='Find and remove adapters in demultiplexed single-end sequences.',
     description='Search demultiplexed single-end sequences for adapters and '
@@ -212,6 +215,7 @@ plugin.methods.register_function(
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
+        ('stats', ImmutableMetadata),
     ],
     input_descriptions={
         'demultiplexed_sequences': 'The paired-end sequences to be trimmed.',
@@ -338,6 +342,7 @@ plugin.methods.register_function(
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
+        'stats': 'Per-sample cutadapt trimming statistics.',
     },
     name='Find and remove adapters in demultiplexed paired-end sequences.',
     description='Search demultiplexed paired-end sequences for adapters and '
