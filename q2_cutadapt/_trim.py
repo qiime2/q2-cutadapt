@@ -197,14 +197,14 @@ def trim_single(
         anywhere_f=anywhere,
     )
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
-    with tempfile.TemporaryDirectory() as report_dir:
+    with tempfile.TemporaryDirectory(prefix='q2-cutadapt-') as report_dir:
         for sample_id, fwd in df.itertuples():
-            json_report = Path(report_dir) / f'{len(json_reports)}.json'
+            json_report_fp = Path(report_dir) / f'{len(json_reports)}.json'
             cmd = _build_trim_command(
                 f_read=fwd,
                 r_read=None,
                 trimmed_seqs=trimmed_sequences,
-                json_report_path=json_report,
+                json_report_path=json_report_fp,
                 adapter_f=adapter,
                 front_f=front,
                 anywhere_f=anywhere,
@@ -230,7 +230,7 @@ def trim_single(
                 nextseq_trim=nextseq_trim,
             )
             cmds.append(cmd)
-            json_reports[sample_id] = json_report
+            json_reports[sample_id] = json_report_fp
 
         run_commands(cmds)
         stats = summarize_cutadapt_json_reports(json_reports, adapter_specs)
@@ -276,14 +276,14 @@ def trim_paired(
         anywhere_r=anywhere_r,
     )
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
-    with tempfile.TemporaryDirectory() as report_dir:
+    with tempfile.TemporaryDirectory(prefix='q2-cutadapt-') as report_dir:
         for sample_id, fwd, rev in df.itertuples():
-            json_report = Path(report_dir) / f'{len(json_reports)}.json'
+            json_report_fp = Path(report_dir) / f'{len(json_reports)}.json'
             cmd = _build_trim_command(
                 f_read=fwd,
                 r_read=rev,
                 trimmed_seqs=trimmed_sequences,
-                json_report_path=json_report,
+                json_report_path=json_report_fp,
                 adapter_f=adapter_f,
                 front_f=front_f,
                 anywhere_f=anywhere_f,
@@ -309,7 +309,7 @@ def trim_paired(
                 nextseq_trim=nextseq_trim,
             )
             cmds.append(cmd)
-            json_reports[sample_id] = json_report
+            json_reports[sample_id] = json_report_fp
 
         run_commands(cmds)
         stats = summarize_cutadapt_json_reports(json_reports, adapter_specs)

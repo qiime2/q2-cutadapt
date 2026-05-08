@@ -100,8 +100,8 @@ def summarize_cutadapt_json_reports(
         spec for spec in adapter_specs if spec.read_key == 'adapters_read2'
     ]
 
-    for sample_id, json_report in json_reports.items():
-        with open(json_report) as fh:
+    for sample_id, json_report_fp in json_reports.items():
+        with open(json_report_fp) as fh:
             report = json.load(fh)
 
         read_counts = report['read_counts']

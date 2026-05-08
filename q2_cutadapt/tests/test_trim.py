@@ -908,7 +908,7 @@ class TestTrimUtilsSingle(TestPluginBase):
             'adapters_read2': None,
         }
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory('q2-cutadapt-tests-') as temp_dir:
             report1_fp = Path(temp_dir) / '1.json'
             report2_fp = Path(temp_dir) / '2.json'
             with open(report1_fp, 'w') as fh:
