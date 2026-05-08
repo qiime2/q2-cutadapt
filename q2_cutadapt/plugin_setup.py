@@ -68,6 +68,7 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'discard_trimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
         'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
@@ -141,6 +142,7 @@ plugin.methods.register_function(
             'records.'
         ),
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
+        'discard_trimmed': 'Discard reads in which an adapter was found.',
         'max_expected_errors': (
             'Discard reads that exceed maximum expected erroneous nucleotides.'
         ),
@@ -202,6 +204,7 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'discard_trimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
         'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
@@ -311,6 +314,7 @@ plugin.methods.register_function(
         'discard_untrimmed': (
             'Discard reads in which no adapter was found.'
         ),
+        'discard_trimmed': 'Discard reads in which an adapter was found.',
         'max_expected_errors': (
             'Discard reads that exceed maximum expected erroneous nucleotides.'
         ),
