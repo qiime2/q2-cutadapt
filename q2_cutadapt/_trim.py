@@ -8,8 +8,11 @@
 
 import os
 import pandas as pd
+from pathlib import Path
+import tempfile
 import warnings
 
+import qiime2
 from qiime2.plugin.util import run_commands
 from qiime2.core.exceptions import RachisWarning
 
@@ -18,6 +21,8 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
 )
+
+from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 
 
 _trim_defaults = {
@@ -51,6 +56,7 @@ def _build_trim_command(
     f_read,
     r_read,
     trimmed_seqs,
+    json_report_path,
     cores=_trim_defaults['cores'],
     adapter_f=_trim_defaults['adapter_f'],
     front_f=_trim_defaults['front_f'],
@@ -73,7 +79,7 @@ def _build_trim_command(
     quality_cutoff_5end=_trim_defaults['quality_cutoff_5end'],
     quality_cutoff_3end=_trim_defaults['quality_cutoff_3end'],
     quality_base=_trim_defaults['quality_base'],
-    nextseq_trim=_trim_defaults['nextseq_trim']
+    nextseq_trim=_trim_defaults['nextseq_trim'],
 ):
     if (quality_cutoff_3end and nextseq_trim):
         warnings.warn(
@@ -143,6 +149,8 @@ def _build_trim_command(
     if discard_untrimmed:
         cmd += ['--discard-untrimmed']
 
+    cmd += ['--json', str(json_report_path)]
+
     cmd += [f_read]
 
     if r_read is not None:
@@ -176,44 +184,50 @@ def trim_single(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
-) -> CasavaOneEightSingleLanePerSampleDirFmt:
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
+    json_reports = {}
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
-    for _, fwd in df.itertuples():
-        cmd = _build_trim_command(
-            f_read=fwd,
-            r_read=None,
-            trimmed_seqs=trimmed_sequences,
-            adapter_f=adapter,
-            front_f=front,
-            anywhere_f=anywhere,
-            adapter_r=None,
-            front_r=None,
-            anywhere_r=None,
-            forward_cut=cut,
-            reverse_cut=None,
-            error_rate=error_rate,
-            indels=indels,
-            times=times,
-            overlap=overlap,
-            match_read_wildcards=match_read_wildcards,
-            match_adapter_wildcards=match_adapter_wildcards,
-            minimum_length=minimum_length,
-            discard_untrimmed=discard_untrimmed,
-            max_expected_errors=max_expected_errors,
-            max_n=max_n,
-            quality_cutoff_5end=quality_cutoff_5end,
-            quality_cutoff_3end=quality_cutoff_3end,
-            quality_base=quality_base,
-            cores=cores,
-            nextseq_trim=nextseq_trim,
-        )
-        cmds.append(cmd)
+    with tempfile.TemporaryDirectory(prefix='q2-cutadapt-') as report_dir:
+        for sample_id, fwd in df.itertuples():
+            json_report_fp = Path(report_dir) / f'{len(json_reports)}.json'
+            cmd = _build_trim_command(
+                f_read=fwd,
+                r_read=None,
+                trimmed_seqs=trimmed_sequences,
+                json_report_path=json_report_fp,
+                adapter_f=adapter,
+                front_f=front,
+                anywhere_f=anywhere,
+                adapter_r=None,
+                front_r=None,
+                anywhere_r=None,
+                forward_cut=cut,
+                reverse_cut=None,
+                error_rate=error_rate,
+                indels=indels,
+                times=times,
+                overlap=overlap,
+                match_read_wildcards=match_read_wildcards,
+                match_adapter_wildcards=match_adapter_wildcards,
+                minimum_length=minimum_length,
+                discard_untrimmed=discard_untrimmed,
+                max_expected_errors=max_expected_errors,
+                max_n=max_n,
+                quality_cutoff_5end=quality_cutoff_5end,
+                quality_cutoff_3end=quality_cutoff_3end,
+                quality_base=quality_base,
+                cores=cores,
+                nextseq_trim=nextseq_trim,
+            )
+            cmds.append(cmd)
+            json_reports[sample_id] = json_report_fp
 
-    run_commands(cmds)
+        run_commands(cmds)
+        stats = _summarize_cutadapt_json_reports(json_reports)
 
-    return trimmed_sequences
+    return trimmed_sequences, stats
 
 
 def trim_paired(
@@ -241,41 +255,47 @@ def trim_paired(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
-) -> CasavaOneEightSingleLanePerSampleDirFmt:
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
+    json_reports = {}
     df = demultiplexed_sequences.manifest.view(pd.DataFrame)
-    for _, fwd, rev in df.itertuples():
-        cmd = _build_trim_command(
-            f_read=fwd,
-            r_read=rev,
-            trimmed_seqs=trimmed_sequences,
-            adapter_f=adapter_f,
-            front_f=front_f,
-            anywhere_f=anywhere_f,
-            adapter_r=adapter_r,
-            front_r=front_r,
-            anywhere_r=anywhere_r,
-            forward_cut=forward_cut,
-            reverse_cut=reverse_cut,
-            error_rate=error_rate,
-            indels=indels,
-            times=times,
-            overlap=overlap,
-            match_read_wildcards=match_read_wildcards,
-            match_adapter_wildcards=match_adapter_wildcards,
-            minimum_length=minimum_length,
-            discard_untrimmed=discard_untrimmed,
-            max_expected_errors=max_expected_errors,
-            max_n=max_n,
-            quality_cutoff_5end=quality_cutoff_5end,
-            quality_cutoff_3end=quality_cutoff_3end,
-            quality_base=quality_base,
-            cores=cores,
-            nextseq_trim=nextseq_trim,
-        )
-        cmds.append(cmd)
+    with tempfile.TemporaryDirectory(prefix='q2-cutadapt-') as report_dir:
+        for sample_id, fwd, rev in df.itertuples():
+            json_report_fp = Path(report_dir) / f'{len(json_reports)}.json'
+            cmd = _build_trim_command(
+                f_read=fwd,
+                r_read=rev,
+                trimmed_seqs=trimmed_sequences,
+                json_report_path=json_report_fp,
+                adapter_f=adapter_f,
+                front_f=front_f,
+                anywhere_f=anywhere_f,
+                adapter_r=adapter_r,
+                front_r=front_r,
+                anywhere_r=anywhere_r,
+                forward_cut=forward_cut,
+                reverse_cut=reverse_cut,
+                error_rate=error_rate,
+                indels=indels,
+                times=times,
+                overlap=overlap,
+                match_read_wildcards=match_read_wildcards,
+                match_adapter_wildcards=match_adapter_wildcards,
+                minimum_length=minimum_length,
+                discard_untrimmed=discard_untrimmed,
+                max_expected_errors=max_expected_errors,
+                max_n=max_n,
+                quality_cutoff_5end=quality_cutoff_5end,
+                quality_cutoff_3end=quality_cutoff_3end,
+                quality_base=quality_base,
+                cores=cores,
+                nextseq_trim=nextseq_trim,
+            )
+            cmds.append(cmd)
+            json_reports[sample_id] = json_report_fp
 
-    run_commands(cmds)
+        run_commands(cmds)
+        stats = _summarize_cutadapt_json_reports(json_reports)
 
-    return trimmed_sequences
+    return trimmed_sequences, stats
