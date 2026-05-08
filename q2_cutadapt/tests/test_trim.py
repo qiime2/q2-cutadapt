@@ -18,10 +18,7 @@ import pandas as pd
 
 import qiime2
 
-from q2_cutadapt._stats import (
-    make_adapter_specs,
-    summarize_cutadapt_json_reports,
-)
+from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 from q2_cutadapt._trim import _build_trim_command
 from q2_types.per_sample_sequences import (
     CasavaOneEightSingleLanePerSampleDirFmt,
@@ -855,11 +852,14 @@ class TestTrimUtilsSingle(TestPluginBase):
             'read_counts': {
                 'input': 10,
                 'output': 8,
+                'read1_with_adapter': 5,
+                'read2_with_adapter': 4,
             },
             'basepair_counts': {
                 'input': 1000,
                 'input_read2': 500,
                 'output': 750,
+                'quality_trimmed': 100,
             },
             'adapters_read1': [
                 {
@@ -880,10 +880,10 @@ class TestTrimUtilsSingle(TestPluginBase):
                 },
                 {
                     'total_matches': 1,
-                    'five_prime_end': None,
-                    'three_prime_end': {
+                    'five_prime_end': {
                         'sequence': 'CCCC',
                     },
+                    'three_prime_end': None,
                 },
             ],
         }
@@ -891,10 +891,13 @@ class TestTrimUtilsSingle(TestPluginBase):
             'read_counts': {
                 'input': 5,
                 'output': 5,
+                'read1_with_adapter': 1,
+                'read2_with_adapter': 0,
             },
             'basepair_counts': {
                 'input': 500,
                 'output': 500,
+                'quality_trimmed': 0,
             },
             'adapters_read1': [
                 {
@@ -916,14 +919,10 @@ class TestTrimUtilsSingle(TestPluginBase):
             with open(report2_fp, 'w') as fh:
                 json.dump(report2, fh)
 
-            obs = summarize_cutadapt_json_reports({
+            obs = _summarize_cutadapt_json_reports({
                 'sample-a': report1_fp,
                 'sample-b': report2_fp,
-            }, make_adapter_specs(
-                adapter_f=['AAAA'],
-                adapter_r=['AAAA'],
-                front_r=['CCCC'],
-            )).to_dataframe()
+            }).to_dataframe()
 
         self.assertEqual(obs.index.name, 'sample-id')
         self.assertEqual(list(obs.columns), [
@@ -931,6 +930,9 @@ class TestTrimUtilsSingle(TestPluginBase):
             'percent-reads-after',
             'bases-before',
             'percent-bases-after',
+            'percent-bases-quality-trimmed',
+            'percent-r1-with-adapter',
+            'percent-r2-with-adapter',
             "3' R1 AAAA",
             "3' R2 AAAA",
             "5' R2 CCCC",
@@ -939,12 +941,152 @@ class TestTrimUtilsSingle(TestPluginBase):
         self.assertEqual(obs.loc['sample-a', 'percent-reads-after'], 80)
         self.assertEqual(obs.loc['sample-a', 'bases-before'], 1000)
         self.assertEqual(obs.loc['sample-a', 'percent-bases-after'], 75)
+        self.assertEqual(obs.loc['sample-a', 'percent-bases-quality-trimmed'],
+                         10)
+        self.assertEqual(obs.loc['sample-a', 'percent-r1-with-adapter'], 50)
+        self.assertEqual(obs.loc['sample-a', 'percent-r2-with-adapter'], 40)
         self.assertEqual(obs.loc['sample-a', "3' R1 AAAA"], 20)
         self.assertEqual(obs.loc['sample-a', "3' R2 AAAA"], 30)
         self.assertEqual(obs.loc['sample-a', "5' R2 CCCC"], 10)
+        self.assertEqual(obs.loc['sample-b', 'percent-bases-quality-trimmed'],
+                         0)
+        self.assertEqual(obs.loc['sample-b', 'percent-r1-with-adapter'], 20)
+        self.assertEqual(obs.loc['sample-b', 'percent-r2-with-adapter'], 0)
         self.assertEqual(obs.loc['sample-b', "3' R1 AAAA"], 80)
         self.assertEqual(obs.loc['sample-b', "3' R2 AAAA"], 0)
         self.assertEqual(obs.loc['sample-b', "5' R2 CCCC"], 0)
+
+    def test_summarize_cutadapt_json_reports_documented_example(self):
+        # JSON fixture copied from
+        # https://cutadapt.readthedocs.io/en/v5.2/reference.html
+        # #json-report-format on 2026-05-08.
+        report = {
+            "tag": "Cutadapt report",
+            "schema_version": [0, 3],
+            "cutadapt_version": "4.5",
+            "python_version": "3.8.10",
+            "command_line_arguments": [
+                "--json=out.cutadapt.json", "--poly-a", "-m", "20",
+                "-a", "AACCGGTTACGTTGCA", "-q", "20", "--discard-trimmed",
+                "-o", "out.fastq.gz", "reads.fastq"],
+            "cores": 1,
+            "input": {
+                "path1": "reads.fastq",
+                "path2": None,
+                "paired": False,
+                "interleaved": None,
+            },
+            "read_counts": {
+                "input": 100000,
+                "filtered": {
+                    "too_short": 251,
+                    "too_long": None,
+                    "too_many_n": None,
+                    "too_many_expected_errors": None,
+                    "casava_filtered": None,
+                    "discard_trimmed": 2061,
+                    "discard_untrimmed": None,
+                },
+                "output": 97688,
+                "reverse_complemented": None,
+                "read1_with_adapter": 2254,
+                "read2_with_adapter": None,
+            },
+            "basepair_counts": {
+                "input": 10100000,
+                "input_read1": 10100000,
+                "input_read2": None,
+                "quality_trimmed": 842048,
+                "quality_trimmed_read1": 842048,
+                "quality_trimmed_read2": None,
+                "poly_a_trimmed": 1028,
+                "poly_a_trimmed_read1": 1028,
+                "poly_a_trimmed_read2": None,
+                "output": 9037053,
+                "output_read1": 9037053,
+                "output_read2": None,
+            },
+            "adapters_read1": [
+                {
+                    "name": "1",
+                    "total_matches": 2254,
+                    "on_reverse_complement": None,
+                    "linked": False,
+                    "five_prime_end": None,
+                    "three_prime_end": {
+                        "type": "regular_three_prime",
+                        "sequence": "AACCGGTTACGTTGCA",
+                        "error_rate": 0.1,
+                        "indels": True,
+                        "error_lengths": [6],
+                        "matches": 2254,
+                        "adjacent_bases": {
+                            "A": 473,
+                            "C": 1240,
+                            "G": 328,
+                            "T": 207,
+                            "": 6,
+                        },
+                        "dominant_adjacent_base": None,
+                        "trimmed_lengths": [
+                            {"len": 3, "expect": 1562.5, "counts": [1220]},
+                            {"len": 4, "expect": 390.6, "counts": [319]},
+                            {"len": 5, "expect": 97.7, "counts": [30]},
+                            {"len": 6, "expect": 24.4, "counts": [4]},
+                            {"len": 7, "expect": 24.4, "counts": [5]},
+                            {"len": 8, "expect": 24.4, "counts": [7]},
+                            {"len": 9, "expect": 24.4, "counts": [4]},
+                            {"len": 10, "expect": 24.4, "counts": [7]},
+                            {"len": 11, "expect": 24.4, "counts": [7]},
+                            {"len": 12, "expect": 24.4, "counts": [6]},
+                            {"len": 13, "expect": 24.4, "counts": [8, 2]},
+                            {"len": 14, "expect": 24.4, "counts": [1, 1]},
+                            {"len": 15, "expect": 24.4, "counts": [2, 0]},
+                            {"len": 16, "expect": 24.4, "counts": [3, 1]},
+                        ],
+                    },
+                },
+            ],
+            "adapters_read2": None,
+            "poly_a_trimmed_read1": [
+                {"len": 23, "count": 10},
+                {"len": 42, "count": 19},
+            ],
+            "poly_a_trimmed_read2": None,
+        }
+
+        with tempfile.TemporaryDirectory('q2-cutadapt-tests-') as temp_dir:
+            report_fp = Path(temp_dir) / '1.json'
+            with open(report_fp, 'w') as fh:
+                json.dump(report, fh)
+
+            obs = _summarize_cutadapt_json_reports(
+                {'sample-a': report_fp}).to_dataframe()
+
+        self.assertEqual(obs.index.name, 'sample-id')
+        self.assertEqual(list(obs.columns), [
+            'reads-before',
+            'percent-reads-after',
+            'bases-before',
+            'percent-bases-after',
+            'percent-bases-quality-trimmed',
+            'percent-r1-with-adapter',
+            "3' R1 AACCGGTTACGTTGCA",
+        ])
+        self.assertEqual(obs.loc['sample-a', 'reads-before'], 100000)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-reads-after'], 97.688)
+        self.assertEqual(obs.loc['sample-a', 'bases-before'], 10100000)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-bases-after'],
+            9037053 / 10100000 * 100)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-bases-quality-trimmed'],
+            842048 / 10100000 * 100)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', 'percent-r1-with-adapter'], 2.254)
+        self.assertAlmostEqual(
+            obs.loc['sample-a', "3' R1 AACCGGTTACGTTGCA"], 2.254)
 
 
 class TestTrimUtilsPaired(TestPluginBase):
