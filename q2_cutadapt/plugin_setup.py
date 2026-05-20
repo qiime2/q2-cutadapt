@@ -28,6 +28,7 @@ from q2_types.per_sample_sequences import (
     SequencesWithQuality,
     PairedEndSequencesWithQuality,
 )
+from q2_types.metadata import ImmutableMetadata
 
 import q2_cutadapt
 import q2_cutadapt._demux
@@ -67,6 +68,7 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'discard_trimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
         'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
@@ -77,6 +79,7 @@ plugin.methods.register_function(
     },
     outputs=[
         ('trimmed_sequences', SampleData[SequencesWithQuality]),
+        ('stats', ImmutableMetadata),
     ],
     input_descriptions={
         'demultiplexed_sequences': 'The single-end sequences to be trimmed.',
@@ -139,6 +142,7 @@ plugin.methods.register_function(
             'records.'
         ),
         'discard_untrimmed': 'Discard reads in which no adapter was found.',
+        'discard_trimmed': 'Discard reads in which an adapter was found.',
         'max_expected_errors': (
             'Discard reads that exceed maximum expected erroneous nucleotides.'
         ),
@@ -160,12 +164,14 @@ plugin.methods.register_function(
         'nextseq_trim': (
             'Trim trailing Poly G tails from 3 prime end. Continues to trim '
             'nucleotides with Phred score quality lower than threshold after '
-            'the tail. Note that this should not be used in conjunction with '
-            '`quality_cutoff_3end` as both trim from the 3 prime end.'
+            'the tail. Note: this should not be used in conjunction with '
+            '`quality_cutoff_3end` as both trim from the 3 prime end. '
+            'Passing 0 disables this trim parameter.'
         ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
+        'stats': 'Per-sample cutadapt trimming statistics.',
     },
     name='Find and remove adapters in demultiplexed single-end sequences.',
     description='Search demultiplexed single-end sequences for adapters and '
@@ -198,6 +204,7 @@ plugin.methods.register_function(
         'match_adapter_wildcards': Bool,
         'minimum_length': Int % Range(1, None),
         'discard_untrimmed': Bool,
+        'discard_trimmed': Bool,
         'max_expected_errors': Float % Range(0, None),
         'max_n': Float % Range(0, None),
         'quality_cutoff_3end': Int % Range(0, None),
@@ -209,6 +216,7 @@ plugin.methods.register_function(
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
+        ('stats', ImmutableMetadata),
     ],
     input_descriptions={
         'demultiplexed_sequences': 'The paired-end sequences to be trimmed.',
@@ -307,6 +315,7 @@ plugin.methods.register_function(
         'discard_untrimmed': (
             'Discard reads in which no adapter was found.'
         ),
+        'discard_trimmed': 'Discard reads in which an adapter was found.',
         'max_expected_errors': (
             'Discard reads that exceed maximum expected erroneous nucleotides.'
         ),
@@ -343,6 +352,7 @@ plugin.methods.register_function(
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',
+        'stats': 'Per-sample cutadapt trimming statistics.',
     },
     name='Find and remove adapters in demultiplexed paired-end sequences.',
     description='Search demultiplexed paired-end sequences for adapters and '
