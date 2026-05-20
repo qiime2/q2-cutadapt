@@ -346,7 +346,7 @@ plugin.methods.register_function(
             'pair is shorter than the minimum the pair is discarded. In the '
             'same scenario if `both` is passed then both reads must be '
             'shorter than the minimum in order to be discarded. Finally, if '
-            '`fist` is passed then the pair is judged off of the first read'
+            '`first` is passed then the pair is judged off of the first read'
             'in the pair.'
         )
     },
