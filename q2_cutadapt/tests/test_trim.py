@@ -836,6 +836,31 @@ class TestTrimPaired(TestPluginBase):
 
         self.assertTrue(all(line_count == 0 for line_count in line_counts))
 
+    def test_pair_filter_any_last_drops(self):
+        """
+        This tests that reads are discarded if the last read is shorter than
+        the minimum length requirement.
+        """
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-filter')
+        )
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=0, reverse_cut=5, pair_filter='any',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        line_counts = []
+        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_counts.append(len(f.readlines()))
+
+        self.assertTrue(all(line_count == 0 for line_count in line_counts))
+
     def test_pair_filter_both_drops(self):
         """
         This tests that reads are discarded if both paired end reads do not
@@ -868,12 +893,12 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter-both')
+            self.get_data_path('paired-filter')
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
-                sequences, forward_cut=5, reverse_cut=5, pair_filter='both',
-                minimum_length=5
+                sequences, forward_cut=1, reverse_cut=1, pair_filter='both',
+                minimum_length=3
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
@@ -893,11 +918,11 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter-first-drops')
+            self.get_data_path('paired-filter')
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
-                sequences, forward_cut=5, reverse_cut=5, pair_filter='first',
+                sequences, forward_cut=5, reverse_cut=1, pair_filter='first',
                 minimum_length=5
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
@@ -918,12 +943,12 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter-first-keeps')
+            self.get_data_path('paired-filter')
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
-                sequences, forward_cut=5, reverse_cut=5, pair_filter='first',
-                minimum_length=5
+                sequences, forward_cut=1, reverse_cut=5, pair_filter='first',
+                minimum_length=3
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
