@@ -897,7 +897,7 @@ class TestTrimPaired(TestPluginBase):
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
-                sequences, forward_cut=1, reverse_cut=1, pair_filter='both',
+                sequences, forward_cut=1, reverse_cut=5, pair_filter='both',
                 minimum_length=3
             )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
