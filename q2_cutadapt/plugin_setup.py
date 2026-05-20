@@ -18,6 +18,7 @@ from qiime2.plugin import (
     Str,
     Bool,
     Threads,
+    Choices
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -212,7 +213,7 @@ plugin.methods.register_function(
         'quality_base': Int % Range(0, None),
         'cores': Threads,
         'nextseq_trim': Int,
-        'pair_filter': Str,
+        'pair_filter': Str % Choices(['any', 'both', 'first']),
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
