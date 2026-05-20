@@ -813,7 +813,7 @@ class TestTrimPaired(TestPluginBase):
 
     def test_pair_filter_any(self):
         """
-        This tests that reads are discarded if atleast one paired end read
+        This tests that reads are discarded if at least one paired end read
         does not meet the minimum length requirement.
         """
         sequences = Artifact.import_data(
