@@ -459,6 +459,27 @@ class TestTrimSingle(TestPluginBase):
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
 
+    def setUp(self):
+        super().setUp()
+
+        os.mkdir(Path(self.temp_dir.name) / 'paired_filter_dir')
+        self.paired_filter_dir = Path(self.temp_dir.name) / 'paired_filter_dir'
+
+        with gzip.open(
+            self.paired_filter_dir / 'filter_S00_L001_R1_001.fastq.gz', 'wb'
+        ) as f:
+            f.write(b'@1\nTTTTTT\n+\n??????\n')
+        with gzip.open(
+            self.paired_filter_dir / 'filter_S00_L001_R2_001.fastq.gz', 'wb'
+        ) as f:
+            f.write(b'@1\nAAAAAA\n+\n??????\n')
+        with open(self.paired_filter_dir / 'MANIFEST', 'w') as f:
+            f.write('sample-id,filename,direction\n')
+            f.write('filter,filter_S00_L001_R1_001.fastq.gz,forward\n')
+            f.write('filter,filter_S00_L001_R2_001.fastq.gz,reverse\n')
+        with open(self.paired_filter_dir / 'metadata.yml', 'w') as f:
+            f.write('{phred-offset: 33}\n')
+
     # This test is really just to make sure that the command runs - the
     # detailed tests in the Util Tests below ensure the commands are crafted
     # appropriately.
@@ -818,7 +839,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
@@ -842,7 +863,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
@@ -867,7 +888,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
@@ -892,7 +913,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
@@ -917,7 +938,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](
@@ -942,7 +963,7 @@ class TestTrimPaired(TestPluginBase):
         """
         sequences = Artifact.import_data(
             'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-filter')
+            self.paired_filter_dir
         )
         with redirected_stdio(stdout=os.devnull):
             trimmed, _ = self.plugin.methods['trim_paired'](

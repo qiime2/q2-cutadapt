@@ -1,3 +1,0 @@
-sample-id,filename,direction
-filter_any,filter_any_S00_L001_R1_001.fastq.gz,forward
-filter_any,filter_any_S00_L001_R2_001.fastq.gz,reverse
