@@ -811,6 +811,145 @@ class TestTrimPaired(TestPluginBase):
                     except StopIteration:
                         break
 
+    def _get_paired_filter_data(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with gzip.open(
+                Path(temp_dir) / 'filter_S00_L001_R1_001.fastq.gz', 'wb'
+            ) as f:
+                f.write(b'@1\nTTTTTT\n+\n??????\n')
+            with gzip.open(
+                Path(temp_dir) / 'filter_S00_L001_R2_001.fastq.gz', 'wb'
+            ) as f:
+                f.write(b'@1\nAAAAAA\n+\n??????\n')
+            with open(Path(temp_dir) / 'MANIFEST', 'w') as f:
+                f.write('sample-id,filename,direction\n')
+                f.write('filter,filter_S00_L001_R1_001.fastq.gz,forward\n')
+                f.write('filter,filter_S00_L001_R2_001.fastq.gz,reverse\n')
+            with open(Path(temp_dir) / 'metadata.yml', 'w') as f:
+                f.write('{phred-offset: 33}\n')
+
+            sequences = Artifact.import_data(
+                'SampleData[PairedEndSequencesWithQuality]', temp_dir
+            )
+
+        return sequences
+
+    def _is_fastqgz_directory_empty(self, directory):
+        line_count = 0
+        for fastq_file in directory.path.glob('*.fastq.gz'):
+            with gzip.open(fastq_file) as f:
+                line_count += len(f.readlines())
+
+        return line_count == 0
+
+    def test_pair_filter_any(self):
+        """
+        This tests that reads are discarded if at least one paired end read
+        does not meet the minimum length requirement.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, pair_filter='any', minimum_length=10
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertTrue(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_pair_filter_any_last_drops(self):
+        """
+        This tests that reads are discarded if the last read is shorter than
+        the minimum length requirement.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=0, reverse_cut=5, pair_filter='any',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertTrue(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_pair_filter_both_drops(self):
+        """
+        This tests that reads are discarded if both paired end reads do not
+        meet the minimum length requirement.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=5, pair_filter='both',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertTrue(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_pair_filter_both_keeps(self):
+        """
+        This tests that reads are not discarded if only one read does not meet
+        the minimum length.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=1, reverse_cut=5, pair_filter='both',
+                minimum_length=3
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_pair_filter_first_drops(self):
+        """
+        This tests that reads are discarded if the first paired end read is
+        shorter than the minimum length and the second is longer.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=5, reverse_cut=1, pair_filter='first',
+                minimum_length=5
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertTrue(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_pair_filter_first_keeps(self):
+        """
+        This tests that reads are kept if the first paired end read is longer
+        than the minimum length but the second paired end read is shorter than
+        the minimum.
+        """
+        sequences = self._get_paired_filter_data()
+
+        with redirected_stdio(stdout=os.devnull):
+            trimmed, _ = self.plugin.methods['trim_paired'](
+                sequences, forward_cut=1, reverse_cut=5, pair_filter='first',
+                minimum_length=3
+            )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
+
+        self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
+
 
 class TestTrimUtilsSingle(TestPluginBase):
     package = 'q2_cutadapt.tests'

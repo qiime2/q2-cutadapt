@@ -18,6 +18,7 @@ from qiime2.plugin import (
     Str,
     Bool,
     Threads,
+    Choices
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -212,6 +213,7 @@ plugin.methods.register_function(
         'quality_base': Int % Range(0, None),
         'cores': Threads,
         'nextseq_trim': Int,
+        'pair_filter': Str % Choices(['any', 'both', 'first']),
     },
     outputs=[
         ('trimmed_sequences', SampleData[PairedEndSequencesWithQuality]),
@@ -338,6 +340,15 @@ plugin.methods.register_function(
             'nucleotides with Phred score quality lower than threshold after '
             'the tail. Note that this should not be used in conjunction with '
             '`quality_cutoff_3end` as both trim from the 3 prime end.'
+        ),
+        'pair_filter': (
+            'How to combine the filters for the forward and reverse reads '
+            'into a single decision for the entire read pair. If `any` then '
+            'the read pair is filtered if at least one of the read directions '
+            'is filtered. If `both`, then both read directions must be '
+            'filtered for the pair to be filtered. If `first` then the '
+            'decision for the pair is the same as the decision for the '
+            'forward read.'
         ),
     },
     output_descriptions={
