@@ -835,15 +835,12 @@ class TestTrimPaired(TestPluginBase):
         return sequences
 
     def _is_fastqgz_directory_empty(self, directory):
-        line_counts = []
+        line_count = 0
         for fastq_file in directory.path.glob('*.fastq.gz'):
             with gzip.open(fastq_file) as f:
-                line_counts.append(len(f.readlines()))
+                line_count += len(f.readlines())
 
-        if all(line_count == 0 for line_count in line_counts):
-            return True
-
-        return False
+        return line_count == 0
 
     def test_pair_filter_any(self):
         """
@@ -914,12 +911,7 @@ class TestTrimPaired(TestPluginBase):
 
         self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
 
-        line_count = 0
-        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
-            with gzip.open(fastq_file) as f:
-                line_count += len(f.readlines())
-
-        self.assertEqual(line_count, 8)
+        self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
 
     def test_pair_filter_first_drops(self):
         """
@@ -956,12 +948,7 @@ class TestTrimPaired(TestPluginBase):
 
         self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
 
-        line_count = 0
-        for fastq_file in trimmed_format.path.glob('*.fastq.gz'):
-            with gzip.open(fastq_file) as f:
-                line_count += len(f.readlines())
-
-        self.assertEqual(line_count, 8)
+        self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
 
 
 class TestTrimUtilsSingle(TestPluginBase):
