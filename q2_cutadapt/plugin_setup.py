@@ -342,14 +342,14 @@ plugin.methods.register_function(
             '`quality_cutoff_3end` as both trim from the 3 prime end.'
         ),
         'pair_filter': (
-            'How to filter paired end reads. For example, if `minimum_length` '
-            'is passed along with the filter `any`, then if one read in a '
-            'pair is shorter than the minimum the pair is discarded. In the '
-            'same scenario if `both` is passed then both reads must be '
-            'shorter than the minimum in order to be discarded. Finally, if '
-            '`first` is passed then the pair is judged off of the first read '
-            'in the pair.'
-        )
+            'How to combine the filters for the forward and reverse reads '
+            'into a single decision for the entire read pair. If `any` then '
+            'the read pair is filtered if at least one of the read directions '
+            'is filtered. If `both`, then both read directions must be '
+            'filtered for the pair to be filtered. If `first` then the '
+            'decision for the pair is the same as the decision for the '
+            'forward read.'
+        ),
     },
     output_descriptions={
         'trimmed_sequences': 'The resulting trimmed sequences.',

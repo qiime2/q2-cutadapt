@@ -267,7 +267,7 @@ def trim_paired(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
-    pair_filter: str = _trim_defaults['pair_filter']
+    pair_filter: str = 'any',
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
