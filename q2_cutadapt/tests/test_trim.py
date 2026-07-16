@@ -1185,7 +1185,7 @@ class TestTrimPaired(TestPluginBase):
         )
 
         trimmed, _ = self.plugin.methods['trim_paired'](
-            sequences, front_f=md_col_fwd, front_r=md_col_rev
+            sequences, anywhere_f=md_col_fwd, anywhere_r=md_col_rev
         )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
 
