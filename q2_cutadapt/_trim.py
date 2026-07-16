@@ -21,6 +21,7 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
 )
+from rachis.metadata import CategoricalMetadataColumn
 
 from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 
@@ -172,11 +173,19 @@ def _build_trim_command(
     return cmd
 
 
+def _normalize_adapter(adapter):
+    if isinstance(adapter, CategoricalMetadataColumn):
+        adapter = adapter.to_dataframe().values.tolist()
+        adapter = [adapt for sublist in adapter for adapt in sublist]
+
+    return adapter
+
+
 def trim_single(
     demultiplexed_sequences: SingleLanePerSampleSingleEndFastqDirFmt,
-    adapter: str = _trim_defaults['adapter_f'],
-    front: str = _trim_defaults['front_f'],
-    anywhere: str = _trim_defaults['anywhere_f'],
+    adapter: str | CategoricalMetadataColumn = _trim_defaults['adapter_f'],
+    front: str | CategoricalMetadataColumn = _trim_defaults['front_f'],
+    anywhere: str | CategoricalMetadataColumn = _trim_defaults['anywhere_f'],
     cut: int = _trim_defaults['forward_cut'],
     error_rate: float = _trim_defaults['error_rate'],
     indels: bool = _trim_defaults['indels'],
@@ -195,6 +204,11 @@ def trim_single(
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+
+    adapter = _normalize_adapter(adapter)
+    front = _normalize_adapter(front)
+    anywhere = _normalize_adapter(anywhere)
+
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}
@@ -243,11 +257,11 @@ def trim_single(
 
 def trim_paired(
     demultiplexed_sequences: SingleLanePerSamplePairedEndFastqDirFmt,
-    adapter_f: str = _trim_defaults['adapter_f'],
-    front_f: str = _trim_defaults['front_f'],
+    adapter_f: str | CategoricalMetadataColumn = _trim_defaults['adapter_f'],
+    front_f: str | CategoricalMetadataColumn = _trim_defaults['front_f'],
     anywhere_f: str = _trim_defaults['anywhere_f'],
-    adapter_r: str = _trim_defaults['adapter_r'],
-    front_r: str = _trim_defaults['front_r'],
+    adapter_r: str | CategoricalMetadataColumn = _trim_defaults['adapter_r'],
+    front_r: str | CategoricalMetadataColumn = _trim_defaults['front_r'],
     anywhere_r: str = _trim_defaults['anywhere_r'],
     forward_cut: int = _trim_defaults['forward_cut'],
     reverse_cut: int = _trim_defaults['reverse_cut'],
@@ -269,6 +283,14 @@ def trim_paired(
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
     pair_filter: str = 'any',
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+
+    front_f = _normalize_adapter(front_f)
+    front_r = _normalize_adapter(front_r)
+    anywhere_f = _normalize_adapter(anywhere_f)
+    anywhere_r = _normalize_adapter(anywhere_r)
+    adapter_f = _normalize_adapter(adapter_f)
+    adapter_r = _normalize_adapter(adapter_r)
+
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}

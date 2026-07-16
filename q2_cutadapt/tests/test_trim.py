@@ -29,6 +29,7 @@ from q2_types.per_sample_sequences import (
 from qiime2 import Artifact
 from qiime2.util import redirected_stdio
 from qiime2.plugin.testing import TestPluginBase
+from qiime2 import Metadata
 
 
 class TestTrimSingle(TestPluginBase):
@@ -454,6 +455,126 @@ class TestTrimSingle(TestPluginBase):
                 demuxed_art, discard_trimmed=True, **kwargs)
 
         self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
+
+    def test_trim_adapter_metadata_column(self):
+        '''
+        Tests that adapters are trimmed correctlt from the 3' end when passed
+        as a metadata column.
+        '''
+        md_df = pd.DataFrame(
+            {'Adapter': ['GTCGA', 'GATGA', 'GTCGA', 'TATCG']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+        md_col = md.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, adapter=md_col
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh).strip()
+                        sequence = next(fh).strip()
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sequence should be untrimmed
+                            self.assertEqual(len(sequence), 10)
+                        else:
+                            self.assertEqual(len(sequence), 5)
+
+                    except StopIteration:
+                        break
+
+    def test_trim_front_metadata_column(self):
+        '''
+        Tests that adapters are trimmed correctly from the 5' end when passed
+        as a metadata column.
+        '''
+        md_df = pd.DataFrame(
+            {'Adapter': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+        md_col = md.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, front=md_col
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh).strip()
+                        sequence = next(fh).strip()
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sequence should be untrimmed
+                            self.assertEqual(len(sequence), 10)
+                        else:
+                            self.assertEqual(len(sequence), 7)
+
+                    except StopIteration:
+                        break
+
+    def test_trim_anywhere_metadata_column(self):
+        '''
+        Should behave the same way as the `front` parameter when given the
+        same sequences and adapters.
+        '''
+        md_df = pd.DataFrame(
+            {'Adapter': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+        md_col = md.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, anywhere=md_col
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh).strip()
+                        sequence = next(fh).strip()
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sequence should be untrimmed
+                            self.assertEqual(len(sequence), 10)
+                        else:
+                            self.assertEqual(len(sequence), 7)
+
+                    except StopIteration:
+                        break
 
 
 class TestTrimPaired(TestPluginBase):
@@ -949,6 +1070,141 @@ class TestTrimPaired(TestPluginBase):
         self.assertEqual(len(os.listdir(str(trimmed_format))), 4)
 
         self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
+
+    def test_tirm_paired_adapter_metadata_column(self):
+        '''
+        Tests that adapters are correctly trimmed from the 3' end when passed
+        as a metadata column for paired end reads.
+        '''
+        md_df_fwd = pd.DataFrame(
+            {'Adapter': ['CCCCGGGG', 'AAAATTTT']}, index=['1', '2']
+        )
+        md_df_rev = pd.DataFrame(
+            {'Adapter': ['GAGAGAGA', 'TCTCTCTC']}, index=['1', '2']
+        )
+        md_df_fwd.index.name = 'id'
+        md_df_rev.index.name = 'id'
+        md_fwd = Metadata(md_df_fwd)
+        md_rev = Metadata(md_df_rev)
+        md_col_fwd = md_fwd.get_column('Adapter')
+        md_col_rev = md_rev.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_paired'](
+            sequences, adapter_f=md_col_fwd, adapter_r=md_col_rev
+        )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*fastq.qz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh)
+                        sequence = next(fh)
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sample should be untrimmed
+                            self.assertEqual(len(sequence), 18)
+                        else:
+                            self.assertEqual(len(sequence), 10)
+
+                    except StopIteration:
+                        break
+
+    def test_trim_paired_front_metadata_column(self):
+        '''
+        Tests that adapters are correctly trimmed from the 5' end when passed
+        as a metadta column for paired end reads.
+        '''
+        md_df_fwd = pd.DataFrame(
+            {'Adapter': ['ATATATAT', 'CGCGCGCG']}, index=['1', '2']
+        )
+        md_df_rev = pd.DataFrame(
+            {'Adapter': ['TTAATTAA', 'GGCCGGCC']}, index=['1', '2']
+        )
+        md_df_fwd.index.name = 'id'
+        md_df_rev.index.name = 'id'
+        md_fwd = Metadata(md_df_fwd)
+        md_rev = Metadata(md_df_rev)
+        md_col_fwd = md_fwd.get_column('Adapter')
+        md_col_rev = md_rev.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_paired'](
+            sequences, front_f=md_col_fwd, front_r=md_col_rev
+        )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*fastq.qz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh)
+                        sequence = next(fh)
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sample should be untrimmed
+                            self.assertEqual(len(sequence), 18)
+                        else:
+                            self.assertEqual(len(sequence), 10)
+
+                    except StopIteration:
+                        break
+
+    def test_trim_paired_anywhere_metadata_column(self):
+        '''
+        Should behave the same way as the `front` parameter when given the
+        same sequences and adapters.
+        '''
+        md_df_fwd = pd.DataFrame(
+            {'Adapter': ['ATATATAT', 'CGCGCGCG']}, index=['1', '2']
+        )
+        md_df_rev = pd.DataFrame(
+            {'Adapter': ['TTAATTAA', 'GGCCGGCC']}, index=['1', '2']
+        )
+        md_df_fwd.index.name = 'id'
+        md_df_rev.index.name = 'id'
+        md_fwd = Metadata(md_df_fwd)
+        md_rev = Metadata(md_df_rev)
+        md_col_fwd = md_fwd.get_column('Adapter')
+        md_col_rev = md_rev.get_column('Adapter')
+
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_paired'](
+            sequences, front_f=md_col_fwd, front_r=md_col_rev
+        )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        for file in Path(trimmed_format.path).glob('*fastq.qz'):
+            with gzip.open(file, 'r') as fh:
+                while True:
+                    try:
+                        sample = next(fh)
+                        sequence = next(fh)
+                        next(fh)
+                        next(fh)
+
+                        if b'5' in sample:  # 5th sample should be untrimmed
+                            self.assertEqual(len(sequence), 18)
+                        else:
+                            self.assertEqual(len(sequence), 10)
+
+                    except StopIteration:
+                        break
 
 
 class TestTrimUtilsSingle(TestPluginBase):

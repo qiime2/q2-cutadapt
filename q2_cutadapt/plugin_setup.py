@@ -7,18 +7,8 @@
 # ----------------------------------------------------------------------------
 
 from qiime2.plugin import (
-    Plugin,
-    Citations,
-    MetadataColumn,
-    Categorical,
-    Float,
-    Range,
-    Int,
-    List,
-    Str,
-    Bool,
-    Threads,
-    Choices
+    Plugin, Citations, MetadataColumn, Categorical, Float, Range, Int,
+    Str, Bool, Threads, Choices
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -56,9 +46,9 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[SequencesWithQuality],
     },
     parameters={
-        'adapter': List[Str],
-        'front': List[Str],
-        'anywhere': List[Str],
+        'adapter': MetadataColumn[Categorical],
+        'front': MetadataColumn[Categorical],
+        'anywhere': MetadataColumn[Categorical],
         'cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
@@ -188,12 +178,12 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[PairedEndSequencesWithQuality],
     },
     parameters={
-        'adapter_f': List[Str],
-        'front_f': List[Str],
-        'anywhere_f': List[Str],
-        'adapter_r': List[Str],
-        'front_r': List[Str],
-        'anywhere_r': List[Str],
+        'adapter_f': MetadataColumn[Categorical],
+        'front_f': MetadataColumn[Categorical],
+        'anywhere_f': MetadataColumn[Categorical],
+        'adapter_r': MetadataColumn[Categorical],
+        'front_r': MetadataColumn[Categorical],
+        'anywhere_r': MetadataColumn[Categorical],
         'forward_cut': Int,
         'reverse_cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,
