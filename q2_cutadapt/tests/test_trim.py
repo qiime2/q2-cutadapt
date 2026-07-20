@@ -30,6 +30,7 @@ from qiime2 import Artifact
 from qiime2.util import redirected_stdio
 from qiime2.plugin.testing import TestPluginBase
 from qiime2 import Metadata
+from rachis.core.exceptions import RachisWarning
 
 
 class TestTrimSingle(TestPluginBase):
@@ -593,6 +594,49 @@ class TestTrimSingle(TestPluginBase):
         with self.assertRaisesRegex(ValueError, 'different'):
             self.plugin.methods['trim_single'](
                 sequences, anywhere=['ACA'], metadata=md
+            )
+
+    def test_trim_warns_paired_columns(self):
+        '''
+        trim_single should warn if a paired-end column is found in the metadata
+        i.e. `anywhere_r`.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'anywhere': ['ATA', 'TTC', 'GAT', 'CAT'],
+                'anywhere_r': ['TTT', 'AAA', 'GGG', 'CCC']
+            },
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertWarns(RachisWarning):
+            self.plugin.methods['trim_single'](
+                sequences, metadata=md
+            )
+
+    def test_trim_errors_bad_metadata(self):
+        md_df = pd.DataFrame(
+            {'nowhere': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertRaisesRegex(ValueError, 'No valid columns detected'):
+            self.plugin.methods['trim_single'](
+                sequences, metadata=md
             )
 
 

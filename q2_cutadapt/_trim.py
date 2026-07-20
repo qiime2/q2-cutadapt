@@ -173,15 +173,22 @@ def _build_trim_command(
     return cmd
 
 
-def _parse_metadata(metadata):
+def _parse_metadata(metadata, type):
     adapters = {}
-    possible_columns = [
-        'adapter', 'front', 'anywhere', 'adapter_r', 'front_r', 'anywhere_r'
-    ]
+    single_columns = ['adapter', 'front', 'anywhere']
+    paired_columns = ['adapter_r', 'front_r', 'anywhere_r']
+    possible_columns = single_columns + paired_columns
 
     for column in possible_columns:
         try:
             adapters[column] = metadata.get_column(column)
+            if column in paired_columns and type == 'single':
+                warnings.warn(
+                    'Detected paired-end column in metadata, is trim-single '
+                    'the correct action?',
+                    RachisWarning
+                )
+                del adapters[column]
         except ValueError:
             pass
 
@@ -190,6 +197,9 @@ def _parse_metadata(metadata):
         adapters[adapter_type] = [
             adapt for sublist in col_list for adapt in sublist
         ]
+
+    if not adapters:
+        raise ValueError('No valid columns detected in the metadata.')
 
     return adapters
 
@@ -220,7 +230,7 @@ def trim_single(
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
 
     if metadata is not None:
-        metadata_dict = _parse_metadata(metadata)
+        metadata_dict = _parse_metadata(metadata, 'single')
 
         adapters = {
             'adapter': adapter,
@@ -323,7 +333,7 @@ def trim_paired(
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
 
     if metadata is not None:
-        metadata_dict = _parse_metadata(metadata)
+        metadata_dict = _parse_metadata(metadata, 'paired')
 
         adapters = {
             'adapter': adapter_f,
