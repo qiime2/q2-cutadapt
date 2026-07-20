@@ -8,7 +8,7 @@
 
 from qiime2.plugin import (
     Plugin, Citations, MetadataColumn, Categorical, Float, Range, Int,
-    Str, Bool, Threads, Choices
+    Str, Bool, Threads, Choices, List, Metadata
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -46,9 +46,10 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[SequencesWithQuality],
     },
     parameters={
-        'adapter': MetadataColumn[Categorical],
-        'front': MetadataColumn[Categorical],
-        'anywhere': MetadataColumn[Categorical],
+        'metadata': Metadata,
+        'adapter': List[Str],
+        'front': List[Str],
+        'anywhere': List[Str],
         'cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,
                                     inclusive_end=True),
@@ -178,12 +179,13 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[PairedEndSequencesWithQuality],
     },
     parameters={
-        'adapter_f': MetadataColumn[Categorical],
-        'front_f': MetadataColumn[Categorical],
-        'anywhere_f': MetadataColumn[Categorical],
-        'adapter_r': MetadataColumn[Categorical],
-        'front_r': MetadataColumn[Categorical],
-        'anywhere_r': MetadataColumn[Categorical],
+        'metadata': Metadata,
+        'adapter_f': List[Str],
+        'front_f': List[Str],
+        'anywhere_f': List[Str],
+        'adapter_r': List[Str],
+        'front_r': List[Str],
+        'anywhere_r': List[Str],
         'forward_cut': Int,
         'reverse_cut': Int,
         'error_rate': Float % Range(0, 1, inclusive_start=True,

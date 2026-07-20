@@ -12,7 +12,7 @@ from pathlib import Path
 import tempfile
 import warnings
 
-import qiime2
+from qiime2 import Metadata
 from qiime2.plugin.util import run_commands
 from qiime2.core.exceptions import RachisWarning
 
@@ -21,13 +21,13 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
 )
-from rachis.metadata import CategoricalMetadataColumn
 
 from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 
 
 _trim_defaults = {
     'cores': 1,
+    'metadata': None,
     'adapter_f': None,
     'adapter_r': None,
     'front_f': None,
@@ -173,19 +173,33 @@ def _build_trim_command(
     return cmd
 
 
-def _normalize_adapter(adapter):
-    if isinstance(adapter, CategoricalMetadataColumn):
-        adapter = adapter.to_dataframe().values.tolist()
-        adapter = [adapt for sublist in adapter for adapt in sublist]
+def _parse_metadata(metadata):
+    adapters = {}
+    possible_columns = [
+        'adapter', 'front', 'anywhere', 'adapter_r', 'front_r', 'anywhere_r'
+    ]
 
-    return adapter
+    for column in possible_columns:
+        try:
+            adapters[column] = metadata.get_column(column)
+        except ValueError:
+            pass
+
+    for adapter_type, column in adapters.items():
+        col_list = column.to_dataframe().values.tolist()
+        adapters[adapter_type] = [
+            adapt for sublist in col_list for adapt in sublist
+        ]
+
+    return adapters
 
 
 def trim_single(
     demultiplexed_sequences: SingleLanePerSampleSingleEndFastqDirFmt,
-    adapter: str | CategoricalMetadataColumn = _trim_defaults['adapter_f'],
-    front: str | CategoricalMetadataColumn = _trim_defaults['front_f'],
-    anywhere: str | CategoricalMetadataColumn = _trim_defaults['anywhere_f'],
+    metadata: Metadata = _trim_defaults['metadata'],
+    adapter: str = _trim_defaults['adapter_f'],
+    front: str = _trim_defaults['front_f'],
+    anywhere: str = _trim_defaults['anywhere_f'],
     cut: int = _trim_defaults['forward_cut'],
     error_rate: float = _trim_defaults['error_rate'],
     indels: bool = _trim_defaults['indels'],
@@ -203,11 +217,34 @@ def trim_single(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
-) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
 
-    adapter = _normalize_adapter(adapter)
-    front = _normalize_adapter(front)
-    anywhere = _normalize_adapter(anywhere)
+    if metadata is not None:
+        metadata_dict = _parse_metadata(metadata)
+
+        adapters = {
+            'adapter': adapter,
+            'front': front,
+            'anywhere': anywhere
+        }
+
+        for name, adapt in adapters.items():
+            try:
+                current = metadata_dict[name]
+            except KeyError:
+                continue
+            if adapt and current and adapt != current:
+                raise ValueError(
+                    'Adapters passed on the command line and in the '
+                    'metadata cannot be different .'
+                )
+
+            if current:
+                adapters[name] = current
+
+        adapter = adapters['adapter']
+        front = adapters['front']
+        anywhere = adapters['anywhere']
 
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
@@ -257,12 +294,13 @@ def trim_single(
 
 def trim_paired(
     demultiplexed_sequences: SingleLanePerSamplePairedEndFastqDirFmt,
-    adapter_f: str | CategoricalMetadataColumn = _trim_defaults['adapter_f'],
-    front_f: str | CategoricalMetadataColumn = _trim_defaults['front_f'],
-    anywhere_f: str | CategoricalMetadataColumn = _trim_defaults['anywhere_f'],
-    adapter_r: str | CategoricalMetadataColumn = _trim_defaults['adapter_r'],
-    front_r: str | CategoricalMetadataColumn = _trim_defaults['front_r'],
-    anywhere_r: str | CategoricalMetadataColumn = _trim_defaults['anywhere_r'],
+    metadata: Metadata = _trim_defaults['metadata'],
+    adapter_f: str = _trim_defaults['adapter_f'],
+    front_f: str = _trim_defaults['front_f'],
+    anywhere_f: str = _trim_defaults['anywhere_f'],
+    adapter_r: str = _trim_defaults['adapter_r'],
+    front_r: str = _trim_defaults['front_r'],
+    anywhere_r: str = _trim_defaults['anywhere_r'],
     forward_cut: int = _trim_defaults['forward_cut'],
     reverse_cut: int = _trim_defaults['reverse_cut'],
     error_rate: float = _trim_defaults['error_rate'],
@@ -282,14 +320,40 @@ def trim_paired(
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
     pair_filter: str = 'any',
-) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
 
-    front_f = _normalize_adapter(front_f)
-    front_r = _normalize_adapter(front_r)
-    anywhere_f = _normalize_adapter(anywhere_f)
-    anywhere_r = _normalize_adapter(anywhere_r)
-    adapter_f = _normalize_adapter(adapter_f)
-    adapter_r = _normalize_adapter(adapter_r)
+    if metadata is not None:
+        metadata_dict = _parse_metadata(metadata)
+
+        adapters = {
+            'adapter': adapter_f,
+            'front': front_f,
+            'anywhere': anywhere_f,
+            'adapter_r': adapter_r,
+            'front_r': front_r,
+            'anywhere_r': anywhere_r
+        }
+
+        for name, adapt in adapters.items():
+            try:
+                current = metadata_dict[name]
+            except KeyError:
+                continue
+            if adapt and current and adapt != current:
+                raise ValueError(
+                    'Adapters passed on the command line and in the '
+                    'metadata cannot be different .'
+                )
+
+            if current:
+                adapters[name] = current
+
+        adapter_f = adapters['adapter']
+        front_f = adapters['front']
+        anywhere_f = adapters['anywhere']
+        adapter_r = adapters['adapter_r']
+        front_r = adapters['front_r']
+        anywhere_r = adapters['anywhere_r']
 
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
