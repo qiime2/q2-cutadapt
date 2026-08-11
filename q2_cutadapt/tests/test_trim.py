@@ -591,7 +591,7 @@ class TestTrimSingle(TestPluginBase):
             self.get_data_path('single-end-metadata')
         )
 
-        with self.assertRaisesRegex(ValueError, 'different'):
+        with self.assertRaisesRegex(ValueError, 'already specified'):
             self.plugin.methods['trim_single'](
                 sequences, anywhere=['ACA'], metadata=md
             )
@@ -1279,7 +1279,7 @@ class TestTrimPaired(TestPluginBase):
             self.get_data_path('paired-end-metadata')
         )
 
-        with self.assertRaisesRegex(ValueError, 'different'):
+        with self.assertRaisesRegex(ValueError, 'already specified'):
             self.plugin.methods['trim_paired'](
                 sequences, anywhere_f=['ACA'], anywhere_r=['TAT'], metadata=md
             )

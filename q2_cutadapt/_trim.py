@@ -184,8 +184,8 @@ def _parse_metadata(metadata, type):
             adapters[column] = metadata.get_column(column)
             if column in paired_columns and type == 'single':
                 warnings.warn(
-                    'Detected paired-end column in metadata, is trim-single '
-                    'the correct action?',
+                    'Ignoring a paired-end specifc column in the metadata. Is '
+                    'trim-single the correct action?',
                     RachisWarning
                 )
                 del adapters[column]
@@ -202,6 +202,17 @@ def _parse_metadata(metadata, type):
         raise ValueError('No valid columns detected in the metadata.')
 
     return adapters
+
+
+def _integrate_metadata_adapters(adapter_dict, metadata_dict):
+    for name, adapter in adapter_dict.items():
+        metadata_adapter = metadata_dict.get(name)
+        if metadata_adapter and adapter:
+            raise ValueError(f"Metadata column: {name} was already specified.")
+        if metadata_adapter is not None:
+            adapter_dict[name] = metadata_adapter
+
+    return adapter_dict
 
 
 def trim_single(
@@ -238,19 +249,7 @@ def trim_single(
             'anywhere': anywhere
         }
 
-        for name, adapt in adapters.items():
-            try:
-                current = metadata_dict[name]
-            except KeyError:
-                continue
-            if adapt and current and adapt != current:
-                raise ValueError(
-                    'Adapters passed on the command line and in the '
-                    'metadata cannot be different .'
-                )
-
-            if current:
-                adapters[name] = current
+        adapters = _integrate_metadata_adapters(adapters, metadata_dict)
 
         adapter = adapters['adapter']
         front = adapters['front']
@@ -343,20 +342,7 @@ def trim_paired(
             'front_r': front_r,
             'anywhere_r': anywhere_r
         }
-
-        for name, adapt in adapters.items():
-            try:
-                current = metadata_dict[name]
-            except KeyError:
-                continue
-            if adapt and current and adapt != current:
-                raise ValueError(
-                    'Adapters passed on the command line and in the '
-                    'metadata cannot be different .'
-                )
-
-            if current:
-                adapters[name] = current
+        adapters = _integrate_metadata_adapters(adapters, metadata_dict)
 
         adapter_f = adapters['adapter']
         front_f = adapters['front']
