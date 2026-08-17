@@ -10,6 +10,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import tempfile
+from typing import Literal
 import warnings
 
 from qiime2 import Metadata
@@ -173,7 +174,7 @@ def _build_trim_command(
     return cmd
 
 
-def _parse_metadata(metadata, type):
+def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     adapters = {}
     single_columns = ['adapter', 'front', 'anywhere']
     paired_columns = ['adapter_r', 'front_r', 'anywhere_r']
@@ -183,12 +184,12 @@ def _parse_metadata(metadata, type):
         try:
             adapters[column] = metadata.get_column(column)
             if column in paired_columns and type == 'single':
+                del adapters[column]
                 warnings.warn(
                     'Ignoring a paired-end specifc column in the metadata. Is '
                     'trim-single the correct action?',
                     RachisWarning
                 )
-                del adapters[column]
         except ValueError:
             pass
 
@@ -204,15 +205,20 @@ def _parse_metadata(metadata, type):
     return adapters
 
 
-def _integrate_metadata_adapters(adapter_dict, metadata_dict):
-    for name, adapter in adapter_dict.items():
-        metadata_adapter = metadata_dict.get(name)
-        if metadata_adapter and adapter:
-            raise ValueError(f"Metadata column: {name} was already specified.")
-        if metadata_adapter is not None:
-            adapter_dict[name] = metadata_adapter
+def _integrate_metadata_adapters(adapters: dict, metadata: dict) -> dict:
+    for name, adapter in adapters.items():
+        md_adapter = metadata.get(name)
 
-    return adapter_dict
+        if md_adapter and adapter:
+            raise ValueError(
+                f"The parameter '{name}' was specified both as a parameter "
+                "and in the metadata. Please choose only one."
+            )
+
+        if md_adapter is not None:
+            adapters[name] = md_adapter
+
+    return adapters
 
 
 def trim_single(

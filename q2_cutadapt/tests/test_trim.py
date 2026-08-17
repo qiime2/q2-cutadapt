@@ -457,188 +457,6 @@ class TestTrimSingle(TestPluginBase):
 
         self.assertLess(_count_seqs(discarded_art), _count_seqs(kept_art))
 
-    def test_trim_adapter_metadata_column(self):
-        '''
-        Tests that adapters are trimmed correctly from the 3' end when passed
-        as a metadata file.
-        '''
-        md_df = pd.DataFrame(
-            {'adapter': ['GTCGA', 'GATGA', 'GTCGA', 'TATCG']},
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        trimmed, _ = self.plugin.methods['trim_single'](
-            sequences, metadata=md
-        )
-        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
-
-        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh).strip()
-                        sequence = next(fh).strip()
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sequence should be untrimmed
-                            self.assertEqual(len(sequence), 10)
-                        else:
-                            self.assertEqual(len(sequence), 5)
-
-                    except StopIteration:
-                        break
-
-    def test_trim_front_metadata_column(self):
-        '''
-        Tests that adapters are trimmed correctly from the 5' end when passed
-        as a metadata file.
-        '''
-        md_df = pd.DataFrame(
-            {'front': ['ATA', 'TTC', 'GAT', 'CAT']},
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        trimmed, _ = self.plugin.methods['trim_single'](
-            sequences, metadata=md
-        )
-        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
-
-        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh).strip()
-                        sequence = next(fh).strip()
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sequence should be untrimmed
-                            self.assertEqual(len(sequence), 10)
-                        else:
-                            self.assertEqual(len(sequence), 7)
-
-                    except StopIteration:
-                        break
-
-    def test_trim_anywhere_metadata_column(self):
-        '''
-        Should behave the same way as the `front` parameter when given the
-        same sequences and adapters.
-        '''
-        md_df = pd.DataFrame(
-            {'anywhere': ['ATA', 'TTC', 'GAT', 'CAT']},
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        trimmed, _ = self.plugin.methods['trim_single'](
-            sequences, metadata=md
-        )
-        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
-
-        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh).strip()
-                        sequence = next(fh).strip()
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sequence should be untrimmed
-                            self.assertEqual(len(sequence), 10)
-                        else:
-                            self.assertEqual(len(sequence), 7)
-
-                    except StopIteration:
-                        break
-
-    def test_trim_errors_differing_adapters(self):
-        '''
-        Trim should error when an adapter sequence specified on the CL differs
-        from the corresponding one passed in a metadata file.
-        '''
-        md_df = pd.DataFrame(
-            {'anywhere': ['ATA', 'TTC', 'GAT', 'CAT']},
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        with self.assertRaisesRegex(ValueError, 'already specified'):
-            self.plugin.methods['trim_single'](
-                sequences, anywhere=['ACA'], metadata=md
-            )
-
-    def test_trim_warns_paired_columns(self):
-        '''
-        trim_single should warn if a paired-end column is found in the metadata
-        i.e. `anywhere_r`.
-        '''
-        md_df = pd.DataFrame(
-            {
-                'anywhere': ['ATA', 'TTC', 'GAT', 'CAT'],
-                'anywhere_r': ['TTT', 'AAA', 'GGG', 'CCC']
-            },
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        with self.assertWarns(RachisWarning):
-            self.plugin.methods['trim_single'](
-                sequences, metadata=md
-            )
-
-    def test_trim_errors_bad_metadata(self):
-        md_df = pd.DataFrame(
-            {'nowhere': ['ATA', 'TTC', 'GAT', 'CAT']},
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[SequencesWithQuality]',
-            self.get_data_path('single-end-metadata')
-        )
-
-        with self.assertRaisesRegex(ValueError, 'No valid columns detected'):
-            self.plugin.methods['trim_single'](
-                sequences, metadata=md
-            )
-
 
 class TestTrimPaired(TestPluginBase):
     package = 'q2_cutadapt.tests'
@@ -1134,7 +952,170 @@ class TestTrimPaired(TestPluginBase):
 
         self.assertFalse(self._is_fastqgz_directory_empty(trimmed_format))
 
-    def test_tirm_paired_adapter_metadata(self):
+
+class TestMetadataParameter(TestPluginBase):
+    package = 'q2_cutadapt.tests'
+
+    def assert_trimmed_lengths(self, trimmed_format, expected_lengths):
+        observed_ids = set()
+
+        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
+            with gzip.open(file, 'rt') as fh:
+                for sample, sequence, _, _ in zip(*[fh] * 4):
+                    sample_id = sample.strip().removeprefix('@')
+                    observed_ids.add(sample_id)
+                    self.assertIn(sample_id, expected_lengths)
+                    self.assertEqual(
+                        len(sequence.strip()), expected_lengths[sample_id]
+                    )
+
+        self.assertEqual(observed_ids, set(expected_lengths))
+
+    def test_trim_adapter_metadata_column(self):
+        '''
+        Tests that adapters are trimmed correctly from the 3' end when passed
+        in as metadata.
+        '''
+        md_df = pd.DataFrame(
+            {'adapter': ['GTCGA', 'GATGA', 'GTCGA', 'TATCG']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 5, '2': 5, '3': 5, '4': 5, '5': 10}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+    def test_trim_front_metadata_column(self):
+        '''
+        Tests that adapters are trimmed correctly from the 5' end when passed
+        in as metadata.
+        '''
+        md_df = pd.DataFrame(
+            {'front': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 7, '2': 7, '3': 7, '4': 7, '5': 10}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+    def test_trim_anywhere_metadata_column(self):
+        '''
+        Should behave the same way as the `front` parameter when given the
+        same sequences and adapters.
+        '''
+        md_df = pd.DataFrame(
+            {'anywhere': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 7, '2': 7, '3': 7, '4': 7, '5': 10}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+    def test_trim_errors_differing_adapters(self):
+        '''
+        Asserts that an error is raised if the same parameter is specified in
+        the function call and in the metadata.
+        '''
+        md_df = pd.DataFrame(
+            {'anywhere': ['ACA', 'ACT']},
+            index=['1', '2']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertRaisesRegex(ValueError, 'specified both'):
+            self.plugin.methods['trim_single'](
+                sequences, anywhere=['ACA'], metadata=md
+            )
+
+    def test_trim_warns_paired_columns(self):
+        '''
+        Asserts that a warning is raised if a paired-end specific parameter is
+        found in the metadata passed to `trim_single`.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'anywhere': ['ATA', 'TTC', 'GAT', 'CAT'],
+                'anywhere_r': ['TTT', 'AAA', 'GGG', 'CCC']
+            },
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertWarns(RachisWarning):
+            self.plugin.methods['trim_single'](
+                sequences, metadata=md
+            )
+
+    def test_trim_errors_bad_metadata(self):
+        '''
+        Asserts that an error is raised if no valid trimming parameters are
+        found in the metadata columns.
+        '''
+        md_df = pd.DataFrame(
+            {'nowhere': ['ATA', 'TTC', 'GAT', 'CAT']},
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertRaisesRegex(ValueError, 'No valid columns detected'):
+            self.plugin.methods['trim_single'](
+                sequences, metadata=md
+            )
+
+    def test_trim_paired_adapter_metadata(self):
         '''
         Tests that adapters are correctly trimmed from the 3' end when passed
         as a metadata file for paired end reads.
@@ -1158,23 +1139,9 @@ class TestTrimPaired(TestPluginBase):
             sequences, metadata=md
         )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        expected_lengths = {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26}
 
-        for file in Path(trimmed_format.path).glob('*fastq.qz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh)
-                        sequence = next(fh)
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sample should be untrimmed
-                            self.assertEqual(len(sequence), 18)
-                        else:
-                            self.assertEqual(len(sequence), 10)
-
-                    except StopIteration:
-                        break
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
 
     def test_trim_paired_front_metadata(self):
         '''
@@ -1196,27 +1163,15 @@ class TestTrimPaired(TestPluginBase):
             self.get_data_path('paired-end-metadata')
         )
 
+        # Record 5 has a 3-base partial adapter match, but is intended to be
+        # the untrimmed control.
         trimmed, _ = self.plugin.methods['trim_paired'](
-            sequences, metadata=md
+            sequences, metadata=md, overlap=8
         )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        expected_lengths = {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26}
 
-        for file in Path(trimmed_format.path).glob('*fastq.qz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh)
-                        sequence = next(fh)
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sample should be untrimmed
-                            self.assertEqual(len(sequence), 18)
-                        else:
-                            self.assertEqual(len(sequence), 10)
-
-                    except StopIteration:
-                        break
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
 
     def test_trim_paired_anywhere_metadata_column(self):
         '''
@@ -1237,52 +1192,15 @@ class TestTrimPaired(TestPluginBase):
             self.get_data_path('paired-end-metadata')
         )
 
+        # Record 5 has a 3-base partial adapter match, but is intended to be
+        # the untrimmed control.
         trimmed, _ = self.plugin.methods['trim_paired'](
-            sequences, metadata=md
+            sequences, metadata=md, overlap=8
         )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        expected_lengths = {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26}
 
-        for file in Path(trimmed_format.path).glob('*fastq.qz'):
-            with gzip.open(file, 'r') as fh:
-                while True:
-                    try:
-                        sample = next(fh)
-                        sequence = next(fh)
-                        next(fh)
-                        next(fh)
-
-                        if b'5' in sample:  # 5th sample should be untrimmed
-                            self.assertEqual(len(sequence), 18)
-                        else:
-                            self.assertEqual(len(sequence), 10)
-
-                    except StopIteration:
-                        break
-
-    def test_trim_errors_differing_adapters(self):
-        '''
-        Trim should error when an adapter sequence specified on the CL differs
-        from the corresponding one passed in a metadata file.
-        '''
-        md_df = pd.DataFrame(
-            {
-                'anywhere': ['ATA', 'TTC', 'GAT', 'CAT'],
-                'anywhere_r': ['TAT', 'CCT', 'AAG', 'TAC']
-            },
-            index=['1', '2', '3', '4']
-        )
-        md_df.index.name = 'id'
-        md = Metadata(md_df)
-
-        sequences = Artifact.import_data(
-            'SampleData[PairedEndSequencesWithQuality]',
-            self.get_data_path('paired-end-metadata')
-        )
-
-        with self.assertRaisesRegex(ValueError, 'already specified'):
-            self.plugin.methods['trim_paired'](
-                sequences, anywhere_f=['ACA'], anywhere_r=['TAT'], metadata=md
-            )
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
 
 
 class TestTrimUtilsSingle(TestPluginBase):
