@@ -996,6 +996,31 @@ class TestMetadataParameter(TestPluginBase):
 
         self.assert_trimmed_lengths(trimmed_format, expected_lengths)
 
+    def test_trim_combines_direct_and_metadata_parameters(self):
+        '''
+        Tests that parameters passed directly and through metadata are both
+        applied when they specify different adapter types.
+        '''
+        md_df = pd.DataFrame(
+            {'adapter': ['GTCGA', 'TATCG']},
+            index=['1', '2']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, front=['TTC'], metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 5, '2': 7, '3': 5, '4': 5, '5': 10}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
     def test_trim_front_metadata_column(self):
         '''
         Tests that adapters are trimmed correctly from the 5' end when passed
