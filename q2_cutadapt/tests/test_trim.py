@@ -30,7 +30,6 @@ from qiime2 import Artifact
 from qiime2.util import redirected_stdio
 from qiime2.plugin.testing import TestPluginBase
 from qiime2 import Metadata
-from rachis.core.exceptions import RachisWarning
 
 
 class TestTrimSingle(TestPluginBase):
@@ -1093,10 +1092,10 @@ class TestMetadataParameter(TestPluginBase):
                 sequences, anywhere=['ACA'], metadata=md
             )
 
-    def test_trim_warns_paired_columns(self):
+    def test_trim_errors_paired_columns(self):
         '''
-        Asserts that a warning is raised if a paired-end specific parameter is
-        found in the metadata passed to `trim_single`.
+        Asserts that a `ValueError` is raised if a paired-end specific
+        parameter is found in the metadata passed to `trim_single`.
         '''
         md_df = pd.DataFrame(
             {
@@ -1113,7 +1112,7 @@ class TestMetadataParameter(TestPluginBase):
             self.get_data_path('single-end-metadata')
         )
 
-        with self.assertWarns(RachisWarning):
+        with self.assertRaisesRegex(ValueError, 'paired-end specific'):
             self.plugin.methods['trim_single'](
                 sequences, metadata=md
             )
