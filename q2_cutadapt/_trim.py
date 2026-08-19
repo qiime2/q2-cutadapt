@@ -178,6 +178,7 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     adapters = {}
     single_columns = ['adapter', 'front', 'anywhere']
     paired_columns = ['adapter_r', 'front_r', 'anywhere_r']
+    paired_columns += [col + '_f' for col in paired_columns]
     paired_columns += [col.replace('_', '-') for col in paired_columns]
     possible_columns = single_columns + paired_columns
 
