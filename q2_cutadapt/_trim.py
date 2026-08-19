@@ -183,15 +183,24 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     for column in possible_columns:
         try:
             adapters[column] = metadata.get_column(column)
-            if column in paired_columns and type == 'single':
-                del adapters[column]
-                warnings.warn(
-                    'Ignoring a paired-end specifc column in the metadata. Is '
-                    'trim-single the correct action?',
-                    RachisWarning
-                )
         except ValueError:
-            pass
+            try:
+                if column in paired_columns:
+                    adapters[column] = metadata.get_column(
+                        column.replace('_', '-')
+                    )
+                else:
+                    continue
+            except ValueError:
+                continue
+
+        if column in paired_columns and type == 'single':
+            del adapters[column]
+            warnings.warn(
+                'Ignoring a paired-end specifc column in the metadata. Is '
+                'trim-single the correct action?',
+                RachisWarning
+            )
 
     for adapter_type, column in adapters.items():
         col_list = column.to_dataframe().values.tolist()
