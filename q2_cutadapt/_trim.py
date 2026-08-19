@@ -178,21 +178,14 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     adapters = {}
     single_columns = ['adapter', 'front', 'anywhere']
     paired_columns = ['adapter_r', 'front_r', 'anywhere_r']
+    paired_columns += [col.replace('_', '-') for col in paired_columns]
     possible_columns = single_columns + paired_columns
 
     for column in possible_columns:
         try:
             adapters[column] = metadata.get_column(column)
         except ValueError:
-            try:
-                if column in paired_columns:
-                    adapters[column] = metadata.get_column(
-                        column.replace('_', '-')
-                    )
-                else:
-                    continue
-            except ValueError:
-                continue
+            continue
 
         if column in paired_columns and type == 'single':
             del adapters[column]
