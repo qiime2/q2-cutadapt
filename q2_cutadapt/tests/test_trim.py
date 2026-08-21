@@ -1096,7 +1096,8 @@ class TestMetadataParameter(TestPluginBase):
     def test_trim_warns_paired_columns(self):
         '''
         Asserts that a `RachisWarning` is raised if a paired-end specific
-        parameter is found in the metadata passed to `trim_single`.
+        parameter is used in trim-single or if a single-end specific parameter
+        is used in trim-paired.
         '''
         md_df = pd.DataFrame(
             {
@@ -1108,14 +1109,24 @@ class TestMetadataParameter(TestPluginBase):
         md_df.index.name = 'id'
         md = Metadata(md_df)
 
-        sequences = Artifact.import_data(
+        single_sequences = Artifact.import_data(
             'SampleData[SequencesWithQuality]',
             self.get_data_path('single-end-metadata')
         )
 
-        with self.assertWarns(RachisWarning):
+        with self.assertWarnsRegex(RachisWarning, r'Ignoring.*"anywhere_r"'):
             self.plugin.methods['trim_single'](
-                sequences, metadata=md
+                single_sequences, metadata=md
+            )
+
+        paired_sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        with self.assertWarnsRegex(RachisWarning, r'Ignoring.*"anywhere"'):
+            self.plugin.methods['trim_paired'](
+                paired_sequences, metadata=md
             )
 
     def test_trim_errors_bad_metadata(self):

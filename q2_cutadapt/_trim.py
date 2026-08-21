@@ -194,15 +194,15 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
         if column in paired_columns and type == 'single':
             del adapters[column]
             warnings.warn(
-                'Ignoring a paired-end specific column in the metadata. Is '
-                'trim-single the correct action?',
+                f'Ignoring paired-end specific column "{column}" that was '
+                'found in the metadata. Is `trim-single` the correct action?',
                 RachisWarning
             )
         if column in single_columns and type == 'paired':
             del adapters[column]
             warnings.warn(
-                'Ignoring a single-end specific column in the metadata. Is '
-                'trim-paired the correct action?',
+                f'Ignoring single-end specific column "{column}" that was '
+                'found in the metadata. Is `trim-paired` the correct action?',
                 RachisWarning
             )
 
