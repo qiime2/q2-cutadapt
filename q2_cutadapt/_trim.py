@@ -189,7 +189,7 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
         elif column.replace('-', '_') in possible_columns:
             adapters[column.replace('-', '_')] = metadata.get_column(column)
         else:
-            raise ValueError(f'Unexpected column in the metadata: {column}.')
+            raise ValueError(f'Unexpected column in the metadata: "{column}".')
 
         if column in paired_columns and type == 'single':
             del adapters[column]
@@ -213,7 +213,7 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
         ]
 
     if not adapters:
-        raise ValueError('No valid columns detected in the metadata.')
+        raise ValueError('The metadata was empty.')
 
     return adapters
 
