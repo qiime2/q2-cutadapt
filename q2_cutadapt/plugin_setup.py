@@ -7,18 +7,8 @@
 # ----------------------------------------------------------------------------
 
 from qiime2.plugin import (
-    Plugin,
-    Citations,
-    MetadataColumn,
-    Categorical,
-    Float,
-    Range,
-    Int,
-    List,
-    Str,
-    Bool,
-    Threads,
-    Choices
+    Plugin, Citations, MetadataColumn, Categorical, Float, Range, Int,
+    Str, Bool, Threads, Choices, List, Metadata
 )
 from q2_types.multiplexed_sequences import (
     MultiplexedSingleEndBarcodeInSequence,
@@ -56,6 +46,7 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[SequencesWithQuality],
     },
     parameters={
+        'metadata': Metadata,
         'adapter': List[Str],
         'front': List[Str],
         'anywhere': List[Str],
@@ -188,6 +179,7 @@ plugin.methods.register_function(
         'demultiplexed_sequences': SampleData[PairedEndSequencesWithQuality],
     },
     parameters={
+        'metadata': Metadata,
         'adapter_f': List[Str],
         'front_f': List[Str],
         'anywhere_f': List[Str],

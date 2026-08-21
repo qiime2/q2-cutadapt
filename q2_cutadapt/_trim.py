@@ -10,9 +10,10 @@ import os
 import pandas as pd
 from pathlib import Path
 import tempfile
+from typing import Literal
 import warnings
 
-import qiime2
+from qiime2 import Metadata
 from qiime2.plugin.util import run_commands
 from qiime2.core.exceptions import RachisWarning
 
@@ -27,6 +28,7 @@ from q2_cutadapt._stats import _summarize_cutadapt_json_reports
 
 _trim_defaults = {
     'cores': 1,
+    'metadata': None,
     'adapter_f': None,
     'adapter_r': None,
     'front_f': None,
@@ -172,8 +174,69 @@ def _build_trim_command(
     return cmd
 
 
+def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
+    adapters = {}
+    single_columns = ['adapter', 'front', 'anywhere']
+    paired_columns = [
+        'adapter_f', 'front_f', 'anywhere_f', 'adapter_r', 'front_r',
+        'anywhere_r'
+    ]
+    possible_columns = single_columns + paired_columns
+
+    for column in metadata.columns:
+        if column in possible_columns:
+            adapters[column] = metadata.get_column(column)
+        elif column.replace('-', '_') in possible_columns:
+            adapters[column.replace('-', '_')] = metadata.get_column(column)
+        else:
+            raise ValueError(f'Unexpected column in the metadata: "{column}".')
+
+        if column in paired_columns and type == 'single':
+            del adapters[column]
+            warnings.warn(
+                f'Ignoring paired-end specific column "{column}" that was '
+                'found in the metadata. Is `trim-single` the correct action?',
+                RachisWarning
+            )
+        if column in single_columns and type == 'paired':
+            del adapters[column]
+            warnings.warn(
+                f'Ignoring single-end specific column "{column}" that was '
+                'found in the metadata. Is `trim-paired` the correct action?',
+                RachisWarning
+            )
+
+    for adapter_type, column in adapters.items():
+        col_list = column.to_dataframe().values.tolist()
+        adapters[adapter_type] = [
+            adapt for sublist in col_list for adapt in sublist
+        ]
+
+    if not adapters:
+        raise ValueError('The metadata was empty.')
+
+    return adapters
+
+
+def _integrate_metadata_adapters(adapters: dict, metadata: dict) -> dict:
+    for name, adapter in adapters.items():
+        md_adapter = metadata.get(name)
+
+        if md_adapter and adapter:
+            raise ValueError(
+                f"The parameter '{name}' was specified both as a parameter "
+                "and in the metadata. Please choose only one."
+            )
+
+        if md_adapter is not None:
+            adapters[name] = md_adapter
+
+    return adapters
+
+
 def trim_single(
     demultiplexed_sequences: SingleLanePerSampleSingleEndFastqDirFmt,
+    metadata: Metadata = _trim_defaults['metadata'],
     adapter: str = _trim_defaults['adapter_f'],
     front: str = _trim_defaults['front_f'],
     anywhere: str = _trim_defaults['anywhere_f'],
@@ -194,7 +257,23 @@ def trim_single(
     quality_base: int = _trim_defaults['quality_base'],
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
-) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
+
+    if metadata is not None:
+        metadata_dict = _parse_metadata(metadata, 'single')
+
+        adapters = {
+            'adapter': adapter,
+            'front': front,
+            'anywhere': anywhere
+        }
+
+        adapters = _integrate_metadata_adapters(adapters, metadata_dict)
+
+        adapter = adapters['adapter']
+        front = adapters['front']
+        anywhere = adapters['anywhere']
+
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}
@@ -243,6 +322,7 @@ def trim_single(
 
 def trim_paired(
     demultiplexed_sequences: SingleLanePerSamplePairedEndFastqDirFmt,
+    metadata: Metadata = _trim_defaults['metadata'],
     adapter_f: str = _trim_defaults['adapter_f'],
     front_f: str = _trim_defaults['front_f'],
     anywhere_f: str = _trim_defaults['anywhere_f'],
@@ -268,7 +348,29 @@ def trim_paired(
     cores: int = _trim_defaults['cores'],
     nextseq_trim: int = _trim_defaults['nextseq_trim'],
     pair_filter: str = 'any',
-) -> (CasavaOneEightSingleLanePerSampleDirFmt, qiime2.Metadata):
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, Metadata):
+
+    if metadata is not None:
+        metadata_dict = _parse_metadata(metadata, 'paired')
+
+        adapters = {
+            'adapter_f': adapter_f,
+            'front_f': front_f,
+            'anywhere_f': anywhere_f,
+            'adapter_r': adapter_r,
+            'front_r': front_r,
+            'anywhere_r': anywhere_r
+        }
+        adapters = _integrate_metadata_adapters(adapters, metadata_dict)
+        print('adapters after integration', adapters)
+
+        adapter_f = adapters['adapter_f']
+        front_f = adapters['front_f']
+        anywhere_f = adapters['anywhere_f']
+        adapter_r = adapters['adapter_r']
+        front_r = adapters['front_r']
+        anywhere_r = adapters['anywhere_r']
+
     trimmed_sequences = CasavaOneEightSingleLanePerSampleDirFmt()
     cmds = []
     json_reports = {}
