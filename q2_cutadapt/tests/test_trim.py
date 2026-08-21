@@ -30,6 +30,7 @@ from qiime2 import Artifact
 from qiime2.util import redirected_stdio
 from qiime2.plugin.testing import TestPluginBase
 from qiime2 import Metadata
+from rachis.core.exceptions import RachisWarning
 
 
 class TestTrimSingle(TestPluginBase):
@@ -1092,9 +1093,9 @@ class TestMetadataParameter(TestPluginBase):
                 sequences, anywhere=['ACA'], metadata=md
             )
 
-    def test_trim_errors_paired_columns(self):
+    def test_trim_warns_paired_columns(self):
         '''
-        Asserts that a `ValueError` is raised if a paired-end specific
+        Asserts that a `RachisWarning` is raised if a paired-end specific
         parameter is found in the metadata passed to `trim_single`.
         '''
         md_df = pd.DataFrame(
@@ -1112,15 +1113,15 @@ class TestMetadataParameter(TestPluginBase):
             self.get_data_path('single-end-metadata')
         )
 
-        with self.assertRaisesRegex(ValueError, 'paired-end specific'):
+        with self.assertWarns(RachisWarning):
             self.plugin.methods['trim_single'](
                 sequences, metadata=md
             )
 
     def test_trim_errors_bad_metadata(self):
         '''
-        Asserts that an error is raised if no valid trimming parameters are
-        found in the metadata columns.
+        Asserts that an error is raised if an invalid trimming parameter is
+        found in the metadata.
         '''
         md_df = pd.DataFrame(
             {'nowhere': ['ATA', 'TTC', 'GAT', 'CAT']},
@@ -1134,7 +1135,7 @@ class TestMetadataParameter(TestPluginBase):
             self.get_data_path('single-end-metadata')
         )
 
-        with self.assertRaisesRegex(ValueError, 'No valid columns detected'):
+        with self.assertRaisesRegex(ValueError, 'Unexpected column'):
             self.plugin.methods['trim_single'](
                 sequences, metadata=md
             )
@@ -1146,7 +1147,7 @@ class TestMetadataParameter(TestPluginBase):
         '''
         md_df = pd.DataFrame(
             {
-                'adapter': ['CCCCGGGG', 'AAAATTTT'],
+                'adapter_f': ['CCCCGGGG', 'AAAATTTT'],
                 'adapter_r': ['GAGAGAGA', 'TCTCTCTC']
             },
             index=['1', '2']
@@ -1174,7 +1175,7 @@ class TestMetadataParameter(TestPluginBase):
         '''
         md_df = pd.DataFrame(
             {
-                'front': ['ATATATAT', 'CGCGCGCG'],
+                'front_f': ['ATATATAT', 'CGCGCGCG'],
                 'front_r': ['TTAATTAA', 'GGCCGGCC']
             }, index=['1', '2']
         )
@@ -1204,7 +1205,7 @@ class TestMetadataParameter(TestPluginBase):
         '''
         md_df = pd.DataFrame(
             {
-                'anywhere': ['ATATATAT', 'CGCGCGCG'],
+                'anywhere_f': ['ATATATAT', 'CGCGCGCG'],
                 'anywhere_r': ['TTAATTAA', 'GGCCGGCC']
             }, index=['1', '2']
         )

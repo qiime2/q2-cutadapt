@@ -177,22 +177,33 @@ def _build_trim_command(
 def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     adapters = {}
     single_columns = ['adapter', 'front', 'anywhere']
-    paired_columns = ['adapter_r', 'front_r', 'anywhere_r']
-    paired_columns += [col + '_f' for col in paired_columns]
-    paired_columns += [col.replace('_', '-') for col in paired_columns]
+    paired_columns = [
+        'adapter_f', 'front_f', 'anywhere_f', 'adapter_r', 'front_r',
+        'anywhere_r'
+    ]
     possible_columns = single_columns + paired_columns
 
-    for column in possible_columns:
-        try:
+    for column in metadata.columns:
+        if column in possible_columns:
             adapters[column] = metadata.get_column(column)
-        except ValueError:
-            continue
+        elif column.replace('-', '_') in possible_columns:
+            adapters[column.replace('-', '_')] = metadata.get_column(column)
+        else:
+            raise ValueError(f'Unexpected column in the metadata: {column}.')
 
         if column in paired_columns and type == 'single':
             del adapters[column]
-            raise ValueError(
+            warnings.warn(
                 'Ignoring a paired-end specific column in the metadata. Is '
                 'trim-single the correct action?',
+                RachisWarning
+            )
+        if column in single_columns and type == 'paired':
+            del adapters[column]
+            warnings.warn(
+                'Ignoring a single-end specific column in the metadata. Is '
+                'trim-paired the correct action?',
+                RachisWarning
             )
 
     for adapter_type, column in adapters.items():
@@ -343,18 +354,19 @@ def trim_paired(
         metadata_dict = _parse_metadata(metadata, 'paired')
 
         adapters = {
-            'adapter': adapter_f,
-            'front': front_f,
-            'anywhere': anywhere_f,
+            'adapter_f': adapter_f,
+            'front_f': front_f,
+            'anywhere_f': anywhere_f,
             'adapter_r': adapter_r,
             'front_r': front_r,
             'anywhere_r': anywhere_r
         }
         adapters = _integrate_metadata_adapters(adapters, metadata_dict)
+        print('adapters after integration', adapters)
 
-        adapter_f = adapters['adapter']
-        front_f = adapters['front']
-        anywhere_f = adapters['anywhere']
+        adapter_f = adapters['adapter_f']
+        front_f = adapters['front_f']
+        anywhere_f = adapters['anywhere_f']
         adapter_r = adapters['adapter_r']
         front_r = adapters['front_r']
         anywhere_r = adapters['anywhere_r']
