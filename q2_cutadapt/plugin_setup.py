@@ -77,6 +77,12 @@ plugin.methods.register_function(
         'demultiplexed_sequences': 'The single-end sequences to be trimmed.',
     },
     parameter_descriptions={
+        'metadata': (
+            'A metadata file with the following structure. Column names '
+            'are parameter names of adapter types (e.g. "front", "anywhere"). '
+            'Column values are adapter sequences. Provides an ergonomic means '
+            'of searching for many adapters.'
+        ),
         'adapter': (
             'Sequence of an adapter ligated to the 3\' end. The '
             'adapter and any subsequent bases are trimmed. If a `$` '
@@ -158,7 +164,7 @@ plugin.methods.register_function(
             'nucleotides with Phred score quality lower than threshold after '
             'the tail. Note: this should not be used in conjunction with '
             '`quality_cutoff_3end` as both trim from the 3 prime end. '
-            'Passing 0 disables this trim parameter.'
+            'If 0 then this parameter is not applied.'
         ),
     },
     output_descriptions={
@@ -215,6 +221,12 @@ plugin.methods.register_function(
         'demultiplexed_sequences': 'The paired-end sequences to be trimmed.',
     },
     parameter_descriptions={
+        'metadata': (
+            'A metadata file with the following structure. Column names '
+            'are parameter names of adapter types (e.g. "front_f", '
+            '"adapter_r"). Column values are adapter sequences. Provides an '
+            'ergonomic means of searching for many adapters.'
+        ),
         'adapter_f': (
             'Sequence of an adapter ligated to the 3\' end. The '
             'adapter and any subsequent bases are trimmed. If a `$` '
@@ -331,7 +343,8 @@ plugin.methods.register_function(
             'Trim trailing Poly G tails from 3 prime end. Continues to trim '
             'nucleotides with Phred score quality lower than threshold after '
             'the tail. Note that this should not be used in conjunction with '
-            '`quality_cutoff_3end` as both trim from the 3 prime end.'
+            '`quality_cutoff_3end` as both trim from the 3 prime end. If 0 '
+            'then this parameter is not applied.'
         ),
         'pair_filter': (
             'How to combine the filters for the forward and reverse reads '

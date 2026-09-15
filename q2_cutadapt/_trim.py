@@ -362,7 +362,6 @@ def trim_paired(
             'anywhere_r': anywhere_r
         }
         adapters = _integrate_metadata_adapters(adapters, metadata_dict)
-        print('adapters after integration', adapters)
 
         adapter_f = adapters['adapter_f']
         front_f = adapters['front_f']
