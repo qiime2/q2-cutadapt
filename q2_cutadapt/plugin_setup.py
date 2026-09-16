@@ -77,6 +77,10 @@ plugin.methods.register_function(
         'demultiplexed_sequences': 'The single-end sequences to be trimmed.',
     },
     parameter_descriptions={
+        'metadata': (
+            'Colums of adapters of tpye adapter, front, anywhere. See '
+            'parameter descriptions for column specific descriptions.'
+        ),
         'adapter': (
             'Sequence of an adapter ligated to the 3\' end. The '
             'adapter and any subsequent bases are trimmed. If a `$` '
@@ -215,6 +219,11 @@ plugin.methods.register_function(
         'demultiplexed_sequences': 'The paired-end sequences to be trimmed.',
     },
     parameter_descriptions={
+        'metadata': (
+            'Colums of adapters of tpye adapter_f, front_f, anywhere_f, '
+            'adapter_r. front_r, anywhere_r. See parameter descriptions for '
+            'column specific descriptions.'
+        ),
         'adapter_f': (
             'Sequence of an adapter ligated to the 3\' end. The '
             'adapter and any subsequent bases are trimmed. If a `$` '
