@@ -184,33 +184,32 @@ def _parse_metadata(metadata: Metadata, type: Literal['single', 'paired']):
     possible_columns = single_columns + paired_columns
 
     for column in metadata.columns:
-        if column in possible_columns:
-            adapters[column] = metadata.get_column(column)
-        elif column.replace('-', '_') in possible_columns:
-            adapters[column.replace('-', '_')] = metadata.get_column(column)
-        else:
+        adapter_type = column.replace('-', '_')
+        if adapter_type not in possible_columns:
             raise ValueError(f'Unexpected column in the metadata: "{column}".')
 
-        if column in paired_columns and type == 'single':
-            del adapters[column]
+        if adapter_type in paired_columns and type == 'single':
             warnings.warn(
                 f'Ignoring paired-end specific column "{column}" that was '
                 'found in the metadata. Is `trim-single` the correct action?',
                 RachisWarning
             )
-        if column in single_columns and type == 'paired':
-            del adapters[column]
+            continue
+        if adapter_type in single_columns and type == 'paired':
             warnings.warn(
                 f'Ignoring single-end specific column "{column}" that was '
                 'found in the metadata. Is `trim-paired` the correct action?',
                 RachisWarning
             )
+            continue
 
-    for adapter_type, column in adapters.items():
-        col_list = column.to_dataframe().values.tolist()
-        adapters[adapter_type] = [
-            adapt for sublist in col_list for adapt in sublist
-        ]
+        # Columns can list different numbers of adapters, which leaves blank
+        # cells in the shorter ones. A column that is entirely blank is
+        # treated as if it were not there.
+        column_adapters = \
+            metadata.get_column(column).to_series().dropna().tolist()
+        if column_adapters:
+            adapters[adapter_type] = column_adapters
 
     if not adapters:
         raise ValueError('The metadata was empty.')

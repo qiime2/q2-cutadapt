@@ -956,10 +956,11 @@ class TestTrimPaired(TestPluginBase):
 class TestMetadataParameter(TestPluginBase):
     package = 'q2_cutadapt.tests'
 
-    def assert_trimmed_lengths(self, trimmed_format, expected_lengths):
+    def assert_trimmed_lengths(self, trimmed_format, expected_lengths,
+                               pattern='*.fastq.gz'):
         observed_ids = set()
 
-        for file in Path(trimmed_format.path).glob('*.fastq.gz'):
+        for file in Path(trimmed_format.path).glob(pattern):
             with gzip.open(file, 'rt') as fh:
                 for sample, sequence, _, _ in zip(*[fh] * 4):
                     sample_id = sample.strip().removeprefix('@')
@@ -1129,6 +1130,43 @@ class TestMetadataParameter(TestPluginBase):
                 paired_sequences, metadata=md
             )
 
+    def test_trim_warns_hyphenated_paired_columns(self):
+        '''
+        Asserts that a paired-end specific column written with a `-` is
+        ignored with a warning by trim-single, the same as when it is written
+        with a `_`, rather than being silently dropped.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'anywhere': ['ATA', 'TTC', 'GAT', 'CAT'],
+                'anywhere-r': ['TTT', 'AAA', 'GGG', 'CCC']
+            },
+            index=['1', '2', '3', '4']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        with self.assertWarnsRegex(RachisWarning, r'Ignoring.*"anywhere-r"'):
+            trimmed, _ = self.plugin.methods['trim_single'](
+                sequences, metadata=md
+            )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 7, '2': 7, '3': 7, '4': 7, '5': 10}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+        md_df = pd.DataFrame({'front-f': ['ATA']}, index=['1'])
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        with self.assertRaisesRegex(ValueError, 'metadata was empty'):
+            self.plugin.methods['trim_single'](sequences, metadata=md)
+
     def test_trim_errors_bad_metadata(self):
         '''
         Asserts that an error is raised if an invalid trimming parameter is
@@ -1235,6 +1273,100 @@ class TestMetadataParameter(TestPluginBase):
         )
         trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
         expected_lengths = {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+    def test_trim_paired_hyphenated_metadata_columns(self):
+        '''
+        Tests that paired-end columns may be written with a `-` in place of
+        the `_`.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'adapter-f': ['CCCCGGGG', 'AAAATTTT'],
+                'adapter-r': ['GAGAGAGA', 'TCTCTCTC']
+            },
+            index=['1', '2']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_paired'](
+            sequences, metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+        expected_lengths = {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26}
+
+        self.assert_trimmed_lengths(trimmed_format, expected_lengths)
+
+    def test_trim_paired_metadata_columns_of_different_lengths(self):
+        '''
+        Tests that columns listing different numbers of adapters can be
+        combined, with the blank cells in the shorter column ignored.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'adapter_f': ['CCCCGGGG', 'AAAATTTT'],
+                'adapter_r': ['GAGAGAGA', None]
+            },
+            index=['1', '2']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[PairedEndSequencesWithQuality]',
+            self.get_data_path('paired-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_paired'](
+            sequences, metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSamplePairedEndFastqDirFmt)
+
+        # Reverse reads 3 and 4 end in the second reverse adapter, which was
+        # left blank, so only their forward reads are trimmed.
+        self.assert_trimmed_lengths(
+            trimmed_format,
+            {'1': 18, '2': 18, '3': 18, '4': 18, '5': 26},
+            pattern='*_R1_*.fastq.gz'
+        )
+        self.assert_trimmed_lengths(
+            trimmed_format,
+            {'1': 18, '2': 18, '3': 26, '4': 26, '5': 26},
+            pattern='*_R2_*.fastq.gz'
+        )
+
+    def test_trim_ignores_blank_metadata_column(self):
+        '''
+        Tests that a column with no adapters in it is treated as absent, so it
+        neither overrides nor conflicts with the matching parameter.
+        '''
+        md_df = pd.DataFrame(
+            {
+                'adapter': ['GTCGA', 'TATCG'],
+                'front': [float('nan'), float('nan')]
+            },
+            index=['1', '2']
+        )
+        md_df.index.name = 'id'
+        md = Metadata(md_df)
+
+        sequences = Artifact.import_data(
+            'SampleData[SequencesWithQuality]',
+            self.get_data_path('single-end-metadata')
+        )
+
+        trimmed, _ = self.plugin.methods['trim_single'](
+            sequences, front=['TTC'], metadata=md
+        )
+        trimmed_format = trimmed.view(SingleLanePerSampleSingleEndFastqDirFmt)
+        expected_lengths = {'1': 5, '2': 7, '3': 5, '4': 5, '5': 10}
 
         self.assert_trimmed_lengths(trimmed_format, expected_lengths)
 
